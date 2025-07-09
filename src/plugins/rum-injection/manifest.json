@@ -1,0 +1,73 @@
+{
+  "id": "rum-injection",
+  "name": "RUM Injection",
+  "description": "Inject Datadog Real User Monitoring (RUM) into web pages for demonstration purposes",
+  "version": "1.0.0",
+  "author": "Datadog Sales Engineering Team",
+  "category": "monitoring",
+  "icon": "📊",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "settings": {
+    "applicationId": {
+      "type": "string",
+      "label": "RUM Application ID",
+      "description": "The Datadog RUM application ID",
+      "required": true,
+      "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    },
+    "clientToken": {
+      "type": "string",
+      "label": "Client Token",
+      "description": "The Datadog RUM client token",
+      "required": true,
+      "placeholder": "pub********************************"
+    },
+    "service": {
+      "type": "string",
+      "label": "Service Name",
+      "description": "Name of the service being monitored",
+      "default": "demo-application",
+      "required": false
+    },
+    "version": {
+      "type": "string",
+      "label": "Application Version",
+      "description": "Version of the application",
+      "default": "1.0.0",
+      "required": false
+    },
+    "env": {
+      "type": "select",
+      "label": "Environment",
+      "description": "Environment where the application is running",
+      "default": "demo",
+      "options": [
+        {"value": "demo", "label": "Demo"},
+        {"value": "staging", "label": "Staging"},
+        {"value": "production", "label": "Production"},
+        {"value": "development", "label": "Development"}
+      ]
+    },
+    "trackUserInteractions": {
+      "type": "boolean",
+      "label": "Track User Interactions",
+      "description": "Enable tracking of user clicks, forms, and page views",
+      "default": true
+    },
+    "trackResources": {
+      "type": "boolean",
+      "label": "Track Resources",
+      "description": "Enable tracking of resource loading times",
+      "default": true
+    },
+    "trackLongTasks": {
+      "type": "boolean",
+      "label": "Track Long Tasks",
+      "description": "Enable tracking of long tasks that block the main thread",
+      "default": false
+    }
+  }
+} 

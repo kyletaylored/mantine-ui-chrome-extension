@@ -1,0 +1,108 @@
+{
+  "id": "event-alerts",
+  "name": "Event Alerts",
+  "description": "Monitor Datadog events and generate real-time notifications for specified monitors",
+  "version": "1.0.0",
+  "author": "Datadog Sales Engineering Team",
+  "category": "monitoring",
+  "icon": "🔔",
+  "permissions": [
+    "notifications",
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "settings": {
+    "monitorIds": {
+      "type": "string",
+      "label": "Monitor IDs",
+      "description": "Comma-separated list of Datadog monitor IDs to watch for events",
+      "required": true,
+      "placeholder": "123456,789012,345678"
+    },
+    "pollingInterval": {
+      "type": "number",
+      "label": "Polling Interval (seconds)",
+      "description": "How often to check for new events",
+      "default": 30,
+      "min": 10,
+      "max": 300
+    },
+    "notificationType": {
+      "type": "select",
+      "label": "Notification Type",
+      "description": "How to display notifications",
+      "default": "chrome",
+      "options": [
+        {"value": "chrome", "label": "Chrome Notifications"},
+        {"value": "in-page", "label": "In-Page Notifications"},
+        {"value": "both", "label": "Both Chrome and In-Page"}
+      ]
+    },
+    "targetDomains": {
+      "type": "string",
+      "label": "Target Domains",
+      "description": "Domains for in-page notifications (comma-separated)",
+      "default": "shopist.io,demo.datadoghq.com",
+      "placeholder": "shopist.io,example.com"
+    },
+    "enableSound": {
+      "type": "boolean",
+      "label": "Enable Sound Notifications",
+      "description": "Play sound when notifications appear",
+      "default": true
+    },
+    "alertPriority": {
+      "type": "select",
+      "label": "Alert Priority Filter",
+      "description": "Minimum priority level for notifications",
+      "default": "normal",
+      "options": [
+        {"value": "low", "label": "Low and above"},
+        {"value": "normal", "label": "Normal and above"},
+        {"value": "high", "label": "High only"}
+      ]
+    },
+    "maxEventsHistory": {
+      "type": "number",
+      "label": "Maximum Events History",
+      "description": "Maximum number of events to keep in history",
+      "default": 100,
+      "min": 10,
+      "max": 500
+    },
+    "showEventDetails": {
+      "type": "boolean",
+      "label": "Show Event Details",
+      "description": "Include detailed event information in notifications",
+      "default": true
+    },
+    "autoOpenDashboard": {
+      "type": "boolean",
+      "label": "Auto-open Dashboard",
+      "description": "Automatically open Datadog dashboard when clicking notifications",
+      "default": false
+    },
+    "enableQuietHours": {
+      "type": "boolean",
+      "label": "Enable Quiet Hours",
+      "description": "Disable notifications during specified hours",
+      "default": false
+    },
+    "quietHoursStart": {
+      "type": "string",
+      "label": "Quiet Hours Start",
+      "description": "Start time for quiet hours (24h format)",
+      "default": "22:00",
+      "placeholder": "22:00"
+    },
+    "quietHoursEnd": {
+      "type": "string",
+      "label": "Quiet Hours End", 
+      "description": "End time for quiet hours (24h format)",
+      "default": "08:00",
+      "placeholder": "08:00"
+    }
+  }
+} 

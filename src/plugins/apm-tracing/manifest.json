@@ -1,0 +1,63 @@
+{
+  "id": "apm-tracing",
+  "name": "APM Tracing",
+  "description": "Monitor and track Datadog APM traces from network requests for demonstration purposes",
+  "version": "1.0.0",
+  "author": "Datadog Sales Engineering Team",
+  "category": "monitoring",
+  "icon": "🔍",
+  "permissions": [
+    "activeTab",
+    "webRequest",
+    "storage"
+  ],
+  "settings": {
+    "maxTraces": {
+      "type": "number",
+      "label": "Maximum Traces to Store",
+      "description": "Maximum number of traces to keep in storage",
+      "default": 100,
+      "min": 10,
+      "max": 500
+    },
+    "traceRetentionHours": {
+      "type": "number",
+      "label": "Trace Retention (Hours)",
+      "description": "How long to keep traces in storage",
+      "default": 24,
+      "min": 1,
+      "max": 168
+    },
+    "monitorDomains": {
+      "type": "string",
+      "label": "Monitor Domains",
+      "description": "Comma-separated list of domains to monitor (leave empty for all)",
+      "default": "",
+      "placeholder": "example.com,api.example.com"
+    },
+    "autoOpenTraces": {
+      "type": "boolean",
+      "label": "Auto-open Traces in New Tab",
+      "description": "Automatically open traces in new tabs when clicked",
+      "default": true
+    },
+    "showRequestDetails": {
+      "type": "boolean",
+      "label": "Show Request Details",
+      "description": "Display detailed request information in the popup",
+      "default": true
+    },
+    "filterByStatus": {
+      "type": "select",
+      "label": "Filter by Status",
+      "description": "Filter traces by HTTP status code",
+      "default": "all",
+      "options": [
+        {"value": "all", "label": "All Status Codes"},
+        {"value": "2xx", "label": "Success (2xx)"},
+        {"value": "4xx", "label": "Client Errors (4xx)"},
+        {"value": "5xx", "label": "Server Errors (5xx)"}
+      ]
+    }
+  }
+} 
