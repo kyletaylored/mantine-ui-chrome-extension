@@ -4,8 +4,9 @@ import { ExtensionStorage, DatadogCredentials, HelpfulLink, Plugin } from '@/typ
 
 const ENCRYPTION_KEY = 'datadog_toolkit_encryption_key_v1';
 
-// Initialize storage bucket using @extend-chrome/storage
+// Initialize storage buckets using @extend-chrome/storage
 const storageBucket = getBucket<ExtensionStorage>('datadog-toolkit', 'local');
+const encryptionBucket = getBucket<Record<string, string>>('datadog-toolkit-encryption', 'local');
 
 // Encryption utilities for sensitive data
 class EncryptionManager {
@@ -16,15 +17,15 @@ class EncryptionManager {
       return this.keyCache!;
     }
 
-    const result = await chrome.storage.local.get([ENCRYPTION_KEY]);
-    if (result[ENCRYPTION_KEY]) {
+    const result = await encryptionBucket.get();
+    if (result?.[ENCRYPTION_KEY]) {
       this.keyCache = result[ENCRYPTION_KEY];
       return this.keyCache!;
     }
     
     // Generate new encryption key
     const key = CryptoJS.lib.WordArray.random(256/8).toString();
-    await chrome.storage.local.set({ [ENCRYPTION_KEY]: key });
+    await encryptionBucket.set(() => ({ [ENCRYPTION_KEY]: key }));
     this.keyCache = key;
     return key;
   }
@@ -71,6 +72,13 @@ export class SecureExtensionStorage {
       SecureExtensionStorage.instance = new SecureExtensionStorage();
     }
     return SecureExtensionStorage.instance;
+  }
+
+  /**
+   * Create a plugin-specific storage bucket
+   */
+  static createPluginBucket<T extends Record<string, any>>(pluginId: string): ReturnType<typeof getBucket<T>> {
+    return getBucket<T>(`datadog-toolkit-plugin-${pluginId}`, 'local');
   }
 
   // ====================

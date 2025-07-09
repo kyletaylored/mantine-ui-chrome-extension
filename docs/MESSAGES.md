@@ -1,4 +1,4 @@
-# Messaging in Chrome Extension
+# Messaging System
 
 This document explains the messaging architecture used in the Datadog Sales Engineer Toolkit Chrome Extension. The extension uses the `@extend-chrome/messages` package to facilitate communication between various parts of the extension—background scripts, content scripts, and popup interfaces.
 

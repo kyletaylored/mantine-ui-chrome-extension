@@ -6,15 +6,18 @@ import {
   convertWebRequestHeaders,
   generateRequestId
 } from './config';
+import { SecureExtensionStorage } from '@/shared/storage';
 
 export class NetworkMonitor {
   private pendingRequests: Map<string, NetworkRequestDetails> = new Map();
   private traceStorage: TraceStorage = { traces: [], lastCleanup: Date.now() };
   private settings: APMTracingSettings;
   private isMonitoring = false;
+  private storage = SecureExtensionStorage.createPluginBucket<TraceStorage>('apm-tracing');
 
   constructor(settings: APMTracingSettings) {
     this.settings = settings;
+    this.loadTraces();
   }
 
   /**
@@ -329,9 +332,9 @@ export class NetworkMonitor {
    */
   private async loadTraces(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get('apmTraces');
-      if (result.apmTraces) {
-        this.traceStorage = result.apmTraces;
+      const result = await this.storage.get();
+      if (result) {
+        this.traceStorage = result;
       }
     } catch (error) {
       console.error('Failed to load traces from storage:', error);
@@ -343,7 +346,7 @@ export class NetworkMonitor {
    */
   private async saveTraces(): Promise<void> {
     try {
-      await chrome.storage.local.set({ apmTraces: this.traceStorage });
+      await this.storage.set(() => this.traceStorage);
     } catch (error) {
       console.error('Failed to save traces to storage:', error);
     }

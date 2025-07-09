@@ -1,8 +1,6 @@
 import { 
   ProcessedEvent, 
-  EventAlertsSettings,
-  NotificationConfig,
-  InPageNotificationConfig
+  EventAlertsSettings
 } from './types';
 import { 
   createChromeNotificationConfig,
@@ -10,6 +8,7 @@ import {
   parseTargetDomains,
   shouldShowInPageNotification
 } from './config';
+import { notificationService } from '@/shared/notifications';
 
 export class NotificationManager {
   /**
@@ -21,27 +20,20 @@ export class NotificationManager {
   ): Promise<void> {
     const config = createChromeNotificationConfig(event, settings);
     
-    const notificationOptions: chrome.notifications.NotificationOptions = {
+    await notificationService.create({
       type: 'basic',
-      iconUrl: config.iconUrl || chrome.runtime.getURL('icons/icon48.png'),
+      iconUrl: config.iconUrl,
       title: config.title,
       message: config.message,
       priority: config.priority,
-      requireInteraction: config.requireInteraction || false,
-      silent: config.silent || false,
-      buttons: config.actions?.map(action => ({ title: action.title }))
-    };
-
-    const notificationId = await chrome.notifications.create(
-      config.tag || `event-${event.id}`,
-      notificationOptions
-    );
-
-    // Store event reference for notification clicks
-    await chrome.storage.local.set({
-      [`notification-${notificationId}`]: {
+      requireInteraction: config.requireInteraction,
+      silent: config.silent,
+      buttons: config.actions?.map(action => ({ title: action.title })),
+      tag: config.tag,
+      data: {
         eventId: event.id,
-        dashboardUrl: event.dashboardUrl
+        dashboardUrl: event.dashboardUrl,
+        buttons: config.actions
       }
     });
   }
@@ -78,28 +70,20 @@ export class NotificationManager {
    * Handle notification click
    */
   public static async handleNotificationClick(notificationId: string): Promise<void> {
-    const key = `notification-${notificationId}`;
-    const result = await chrome.storage.local.get(key);
-    const notificationData = result[key];
+    const data = await notificationService.getNotificationData(notificationId);
 
-    if (notificationData?.dashboardUrl) {
-      await chrome.tabs.create({ url: notificationData.dashboardUrl });
+    if (data?.dashboardUrl) {
+      await chrome.tabs.create({ url: data.dashboardUrl });
     }
 
-    // Clear the notification data
-    await chrome.storage.local.remove(key);
-    await chrome.notifications.clear(notificationId);
+    // Clear notification
+    await notificationService.clear(notificationId);
   }
 
   /**
    * Clear all notifications
    */
   public static async clearAllNotifications(): Promise<void> {
-    const notifications = await chrome.notifications.getAll();
-    
-    for (const notificationId of Object.keys(notifications)) {
-      await chrome.notifications.clear(notificationId);
-      await chrome.storage.local.remove(`notification-${notificationId}`);
-    }
+    await notificationService.clearAll();
   }
 } 

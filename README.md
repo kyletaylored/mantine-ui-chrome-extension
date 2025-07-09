@@ -32,6 +32,36 @@ storage.watchCredentials().subscribe(newCredentials => {
 
 📖 **[Full Storage Documentation](./docs/STORAGE.md)**
 
+### Notification System
+
+The extension uses a centralized notification system built on `@extend-chrome/notify`:
+
+- **Automatic Event Handling**: Click, button, and close events managed automatically
+- **Data Persistence**: Notification metadata stored and retrieved seamlessly
+- **Type-Safe**: Full TypeScript support with proper interfaces
+- **Plugin Integration**: Easy integration for custom notifications
+
+```typescript
+import { showNotification, createNotification } from '@/shared/notifications';
+
+// Simple notification
+await showNotification('Alert', 'Something happened');
+
+// Advanced notification with actions
+await createNotification({
+  title: 'Event Alert',
+  message: 'Critical issue detected',
+  priority: 2,
+  buttons: [{ title: 'View Dashboard' }],
+  data: {
+    dashboardUrl: 'https://app.datadoghq.com/dashboard',
+    eventId: 'evt_123456'
+  }
+});
+```
+
+📖 **[Full Notification Documentation](./docs/NOTIFICATIONS.md)**
+
 ## 📦 Installation
 
 1. Clone the repository

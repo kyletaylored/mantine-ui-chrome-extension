@@ -113,7 +113,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender,
         
       case 'GET_APM_TRACES': {
         debugLog('PROCESSING', 'GET_APM_TRACES', { filter: request.filter });
-        const traces = await getApmTraces(request.filter);
+        const traces = await getApmTraces();
         sendResponse({ success: true, traces });
         break;
       }
@@ -396,7 +396,7 @@ async function updateApmSettings(settings: any): Promise<void> {
   networkMonitor.updateSettings(settings);
 }
 
-async function getApmTraces(_filter: string): Promise<any[]> {
+async function getApmTraces(): Promise<any[]> {
   const networkMonitor = getNetworkMonitor(DEFAULT_APM_SETTINGS);
   return await networkMonitor.getTraces();
 }
@@ -501,20 +501,8 @@ async function showInPageNotification(payload: any): Promise<void> {
   await NotificationManager.showInPageNotification(event, settings);
 }
 
-// Chrome notification handlers
-chrome.notifications.onClicked.addListener(async (notificationId) => {
-  const { NotificationManager } = await import('../plugins/event-alerts/notification-manager');
-  await NotificationManager.handleNotificationClick(notificationId);
-});
-
-chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
-  if (buttonIndex === 0) { // View button
-    const { NotificationManager } = await import('../plugins/event-alerts/notification-manager');
-    await NotificationManager.handleNotificationClick(notificationId);
-  } else if (buttonIndex === 1) { // Dismiss button
-    await chrome.notifications.clear(notificationId);
-  }
-});
+// Chrome notification handlers - these will be handled by the shared notification service
+// The notificationService already sets up these listeners automatically
 
 // Initialize core plugins that are always required
 async function initializeCorePlugins(): Promise<void> {

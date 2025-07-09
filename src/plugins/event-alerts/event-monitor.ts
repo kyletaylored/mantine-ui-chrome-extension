@@ -16,13 +16,25 @@ import {
   calculateNextPollTime,
   isWithinQuietHours
 } from './config';
+import { SecureExtensionStorage } from '@/shared/storage';
 
+interface EventStorage {
+  events: ProcessedEvent[];
+  lastPollTime: number;
+  pollCount: number;
+}
+
+/**
+ * Event monitor for polling Datadog events
+ */
 export class EventMonitor {
   private pollingInterval: number | null = null;
   private isPolling = false;
   private settings: EventAlertsSettings;
   private site: string;
   private apiKey: string;
+  private storage = SecureExtensionStorage.createPluginBucket<EventStorage>('event-alerts');
+  private cacheStorage = SecureExtensionStorage.createPluginBucket<Record<string, string>>('event-alerts-cache');
   private pollingStatus: PollingStatus = {
     isActive: false,
     lastPoll: 0,
@@ -264,9 +276,9 @@ export class EventMonitor {
     try {
       // Try to get from cache first
       const cacheKey = `monitor-name-${monitorId}`;
-      const cached = await chrome.storage.local.get(cacheKey);
+      const cached = await this.cacheStorage.get();
       
-      if (cached[cacheKey]) {
+      if (cached?.[cacheKey]) {
         return cached[cacheKey];
       }
 
@@ -341,10 +353,9 @@ export class EventMonitor {
    * Get event storage
    */
   private async getEventStorage(): Promise<EventStorage> {
-    const storageKey = generateEventStorageKey(this.settings);
-    const result = await chrome.storage.local.get(storageKey);
+    const result = await this.storage.get();
     
-    return result[storageKey] || {
+    return result || {
       events: [],
       lastPollTime: 0,
       pollCount: 0,
@@ -355,16 +366,14 @@ export class EventMonitor {
    * Save event storage
    */
   private async saveEventStorage(storage: EventStorage): Promise<void> {
-    const storageKey = generateEventStorageKey(this.settings);
-    await chrome.storage.local.set({ [storageKey]: storage });
+    await this.storage.set(() => storage);
   }
 
   /**
    * Clear all stored events
    */
   public async clearEventStorage(): Promise<void> {
-    const storageKey = generateEventStorageKey(this.settings);
-    await chrome.storage.local.remove(storageKey);
+    await this.storage.clear();
   }
 
   /**

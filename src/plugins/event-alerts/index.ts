@@ -4,7 +4,11 @@ import { NotificationManager } from './notification-manager';
 import { DEFAULT_EVENT_ALERTS_SETTINGS, EVENT_ALERTS_PLUGIN_CONFIG } from './config';
 import { EventAlertsSettings, ProcessedEvent, PollingStatus, EventStats } from './types';
 import { Plugin } from '../../types';
+import { SecureExtensionStorage } from '@/shared/storage';
 
+/**
+ * Event Alerts Plugin
+ */
 export class EventAlertsPlugin implements Plugin {
   public readonly id = 'event-alerts';
   public readonly name = 'Event Alerts';
@@ -16,6 +20,7 @@ export class EventAlertsPlugin implements Plugin {
   public readonly updatedAt = Date.now();
 
   private eventMonitor: EventMonitor | null = null;
+  private storage = SecureExtensionStorage.getInstance();
 
   /**
    * Initialize the plugin
@@ -214,9 +219,10 @@ export class EventAlertsPlugin implements Plugin {
    * Update plugin settings
    */
   private async updateSettings(newSettings: EventAlertsSettings): Promise<void> {
-    await chrome.storage.local.set({
-      'event-alerts-settings': newSettings
-    });
+    // Store settings in the main storage under a plugin-specific key
+    await this.storage.update({
+      [`plugin-${this.id}-settings`]: newSettings
+    } as any);
     
     if (this.eventMonitor) {
       this.eventMonitor.updateSettings(newSettings);
@@ -232,16 +238,15 @@ export class EventAlertsPlugin implements Plugin {
    * Get plugin settings
    */
   private async getSettings(): Promise<EventAlertsSettings> {
-    const result = await chrome.storage.local.get('event-alerts-settings');
-    return result['event-alerts-settings'] || DEFAULT_EVENT_ALERTS_SETTINGS;
+    const data = await this.storage.get();
+    return (data as any)[`plugin-${this.id}-settings`] || DEFAULT_EVENT_ALERTS_SETTINGS;
   }
 
   /**
    * Get Datadog credentials
    */
   private async getCredentials(): Promise<{ apiKey: string; site: string }> {
-    const result = await chrome.storage.local.get(['datadog-credentials']);
-    const credentials = result['datadog-credentials'];
+    const credentials = await this.storage.getCredentials();
     
     if (!credentials?.apiKey) {
       throw new Error('Datadog API key not configured');

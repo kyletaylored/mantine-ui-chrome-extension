@@ -19,7 +19,7 @@ import {
   Grid,
   Title,
 } from '@mantine/core';
-import { IconBell, IconSettings, IconList, IconChartBar, IconTrash, IconExternalLink, IconRefresh } from '@tabler/icons-react';
+import { IconBell, IconSettings, IconList, IconTrash, IconExternalLink, IconRefresh } from '@tabler/icons-react';
 import { EventAlertsSettings, ProcessedEvent, PollingStatus, EventStats } from './types';
 import { formatTimeDuration, getSeverityColor } from './config';
 
