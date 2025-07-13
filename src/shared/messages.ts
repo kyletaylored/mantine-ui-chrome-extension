@@ -1,14 +1,12 @@
 import { getMessage } from '@extend-chrome/messages';
 import { DatadogCredentials } from '../types';
+import { createLogger } from './logger';
 
-// Debug logging helper
-const debugLog = (operation: string, messageType: string, data?: any) => {
-  console.log(`[Messages Debug] ${operation} - ${messageType}`, data);
-};
+const debugLog = createLogger('Messages');
 
 // Credential validation messages
 export interface ValidateCredentialsRequest {
-  credentials: DatadogCredentials;
+  credentials: Pick<DatadogCredentials, 'apiKey' | 'appKey'>;
 }
 
 export interface ValidateCredentialsResponse {
@@ -22,7 +20,7 @@ const [_sendValidateCredentials, validateCredentialsStream, waitForValidateCrede
 
 // Wrap with debug logging
 export const sendValidateCredentials = (data: ValidateCredentialsRequest) => {
-  debugLog('SENDING', 'VALIDATE_CREDENTIALS', data);
+  debugLog.debug('SENDING', 'VALIDATE_CREDENTIALS', data);
   return _sendValidateCredentials(data);
 };
 

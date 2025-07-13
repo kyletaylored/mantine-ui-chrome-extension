@@ -1,11 +1,10 @@
-// src/shared/storage.ts
+// src/shared/storage.js
 import { getBucket } from '@extend-chrome/storage';
-import { ExtensionStorage, DatadogCredentials, HelpfulLink, StoredPlugin } from '@/types';
 import { createLogger } from '@/shared/logger';
 
 const logger = createLogger('Storage');
 
-const DEFAULT_STORAGE: ExtensionStorage = {
+const DEFAULT_STORAGE = {
   credentials: {
     apiKey: '',
     appKey: '',
@@ -23,31 +22,31 @@ const DEFAULT_STORAGE: ExtensionStorage = {
 };
 
 // Core storage bucket
-const storage = getBucket<ExtensionStorage>('datadog-toolkit', 'local');
+const storage = getBucket('datadog-toolkit', 'local');
 
 // Base helpers
-export async function getStorage(): Promise<ExtensionStorage> {
+export async function getStorage() {
   return (await storage.get()) ?? DEFAULT_STORAGE;
 }
 
-export async function updateStorage(updates: Partial<ExtensionStorage>): Promise<void> {
+export async function updateStorage(updates) {
   await storage.set((prev) => ({ ...prev, ...updates }));
 }
 
-export async function clearStorage(): Promise<void> {
+export async function clearStorage() {
   await storage.clear();
 }
 
 // Credentials
-export async function getCredentials(): Promise<DatadogCredentials> {
+export async function getCredentials() {
   return (await getStorage()).credentials;
 }
 
-export async function setCredentials(credentials: DatadogCredentials): Promise<void> {
+export async function setCredentials(credentials) {
   await updateStorage({ credentials });
 }
 
-export async function clearCredentials(): Promise<void> {
+export async function clearCredentials() {
   await updateStorage({
     credentials: {
       apiKey: '',
@@ -59,25 +58,27 @@ export async function clearCredentials(): Promise<void> {
 }
 
 // Helpful Links
-export async function getHelpfulLinks(): Promise<HelpfulLink[]> {
+export async function getHelpfulLinks() {
   return (await getStorage()).helpfulLinks;
 }
 
-export async function addHelpfulLink(link: Omit<HelpfulLink, 'id' | 'createdAt' | 'updatedAt'>): Promise<HelpfulLink> {
-  const newLink: HelpfulLink = {
+export async function addHelpfulLink(link) {
+  const newLink = {
     ...link,
     id: Date.now().toString(),
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
+  
   await storage.set((prev) => ({
     ...prev,
     helpfulLinks: [...prev.helpfulLinks, newLink]
   }));
+  
   return newLink;
 }
 
-export async function updateHelpfulLink(id: string, updates: Partial<HelpfulLink>): Promise<void> {
+export async function updateHelpfulLink(id, updates) {
   await storage.set((prev) => ({
     ...prev,
     helpfulLinks: prev.helpfulLinks.map((link) =>
@@ -86,7 +87,7 @@ export async function updateHelpfulLink(id: string, updates: Partial<HelpfulLink
   }));
 }
 
-export async function removeHelpfulLink(id: string): Promise<void> {
+export async function removeHelpfulLink(id) {
   await storage.set((prev) => ({
     ...prev,
     helpfulLinks: prev.helpfulLinks.filter((link) => link.id !== id)
@@ -94,11 +95,11 @@ export async function removeHelpfulLink(id: string): Promise<void> {
 }
 
 // Settings
-export async function getSettings(): Promise<ExtensionStorage['settings']> {
+export async function getSettings() {
   return (await getStorage()).settings;
 }
 
-export async function updateSettings(updates: Partial<ExtensionStorage['settings']>): Promise<void> {
+export async function updateSettings(updates) {
   await storage.set((prev) => ({
     ...prev,
     settings: { ...prev.settings, ...updates }
@@ -106,20 +107,20 @@ export async function updateSettings(updates: Partial<ExtensionStorage['settings
 }
 
 // Plugins
-export async function getPlugins(): Promise<StoredPlugin[]> {
+export async function getPlugins() {
   return (await getStorage()).plugins;
 }
 
-export async function getEnabledPlugins(): Promise<StoredPlugin[]> {
+export async function getEnabledPlugins() {
   return (await getPlugins()).filter((p) => p.enabled);
 }
 
-export async function isPluginEnabled(pluginId: string): Promise<boolean> {
+export async function isPluginEnabled(pluginId) {
   const plugin = (await getPlugins()).find((p) => p.id === pluginId);
   return plugin?.enabled ?? false;
 }
 
-export async function setPluginEnabled(pluginId: string, enabled: boolean): Promise<void> {
+export async function setPluginEnabled(pluginId, enabled) {
   const plugin = (await getPlugins()).find((p) => p.id === pluginId);
   if (!plugin) throw new Error(`Plugin ${pluginId} not found in storage`);
   if (plugin.isCore && !enabled) throw new Error('Cannot disable core plugin');
@@ -127,7 +128,7 @@ export async function setPluginEnabled(pluginId: string, enabled: boolean): Prom
   await updatePlugin(pluginId, { enabled });
 }
 
-export async function addPlugin(plugin: StoredPlugin): Promise<void> {
+export async function addPlugin(plugin) {
   await storage.set((prev) => {
     const existing = prev.plugins.find((p) => p.id === plugin.id);
     const now = Date.now();
@@ -162,7 +163,7 @@ export async function addPlugin(plugin: StoredPlugin): Promise<void> {
   });
 }
 
-export async function updatePlugin(id: string, updates: Partial<StoredPlugin>): Promise<void> {
+export async function updatePlugin(id, updates) {
   await storage.set((prev) => ({
     ...prev,
     plugins: prev.plugins.map((plugin) => {
@@ -182,7 +183,7 @@ export async function updatePlugin(id: string, updates: Partial<StoredPlugin>): 
   }));
 }
 
-export async function removePlugin(id: string): Promise<void> {
+export async function removePlugin(id) {
   const plugin = (await getPlugins()).find((p) => p.id === id);
   if (plugin?.isCore) throw new Error(`Cannot remove core plugin: ${id}`);
 
@@ -192,7 +193,7 @@ export async function removePlugin(id: string): Promise<void> {
   }));
 }
 
-export async function ensureCorePluginsEnabled(): Promise<void> {
+export async function ensureCorePluginsEnabled() {
   await storage.set((prev) => ({
     ...prev,
     plugins: prev.plugins.map((plugin) =>
@@ -204,6 +205,6 @@ export async function ensureCorePluginsEnabled(): Promise<void> {
 }
 
 // Plugin-scoped storage
-export function getPluginStorage<T extends Record<string, any>>(pluginId: string) {
-  return getBucket<T>(`datadog-toolkit-plugin-${pluginId}`, 'local');
+export function getPluginStorage(pluginId) {
+  return getBucket(`datadog-toolkit-plugin-${pluginId}`, 'local');
 }

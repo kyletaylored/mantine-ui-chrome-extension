@@ -1,8 +1,8 @@
 import { RumExtractionSettings, RumSessionData, RumExtractionResult } from './types';
 
 export const RUM_EXTRACTION_PLUGIN_CONFIG = {
-  id: 'rum-extraction',
-  name: 'RUM Session Extraction',
+  id: 'rum-viewer',
+  name: 'RUM Session Viewer',
   description: 'Extract and display Real User Monitoring (RUM) session data from active pages',
   version: '1.0.0',
   icon: '👤',

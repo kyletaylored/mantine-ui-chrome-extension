@@ -22,21 +22,8 @@ export const DEFAULT_RUM_SETTINGS: RumInjectionSettings = {
   trackLongTasks: false,
 };
 
-export const RUM_SCRIPT_VERSION = '5.18.0';
-
 export const getRumScriptUrl = (site: string): string => {
-  // Map Datadog sites to RUM CDN URLs
-  const siteMapping: Record<string, string> = {
-    'us1': 'https://www.datadoghq-browser-agent.com',
-    'us3': 'https://www.datadoghq-browser-agent.com',
-    'us5': 'https://www.datadoghq-browser-agent.com',
-    'eu1': 'https://www.datadoghq-browser-agent.com',
-    'ap1': 'https://www.datadoghq-browser-agent.com',
-    'gov': 'https://www.datadoghq-browser-agent.com'
-  };
-
-  const baseUrl = siteMapping[site] || siteMapping['us1'];
-  return `${baseUrl}/datadog-rum-v5.js`;
+  return `https://www.datadoghq-browser-agent.com/${site}/v6/datadog-rum.js`;
 };
 
 export const generateRumInitScript = (settings: RumInjectionSettings, site: string): string => {
@@ -53,9 +40,6 @@ export const generateRumInitScript = (settings: RumInjectionSettings, site: stri
       env: "${settings.env}",
       sessionSampleRate: 100,
       sessionReplaySampleRate: 100,
-      trackUserInteractions: ${settings.trackUserInteractions},
-      trackResources: ${settings.trackResources},
-      trackLongTasks: ${settings.trackLongTasks},
       defaultPrivacyLevel: 'mask-user-input',
       enableExperimentalFeatures: ['clickmap']
     });

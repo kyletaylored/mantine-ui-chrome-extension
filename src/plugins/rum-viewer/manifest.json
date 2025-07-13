@@ -1,7 +1,7 @@
 {
-  "id": "rum-extraction",
-  "name": "RUM Session Extraction",
-  "description": "Extract and display Real User Monitoring (RUM) session data from active pages",
+  "id": "rum-viewer",
+  "name": "RUM Viewer",
+  "description": "View Real User Monitoring (RUM) session data from active pages",
   "version": "1.0.0",
   "author": "Datadog Sales Engineering Team",
   "category": "core",

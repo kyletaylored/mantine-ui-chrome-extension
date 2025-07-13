@@ -4,11 +4,10 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: {
-    popup: './src/popup/index.tsx',
-    options: './src/options/index.tsx',
-    background: './src/background/background.ts',
-    content: './src/content/content.ts',
-    injected: './src/content/injected.ts'
+    popup: './src/popup/index.jsx',
+    options: './src/options/index.jsx',
+    background: './src/background/background.js',
+    content: './src/content/content.js'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -18,13 +17,15 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(ts|tsx)$/,
+        test: /\.(js|jsx)$/,
         use: [
           {
-            loader: 'ts-loader',
+            loader: 'babel-loader',
             options: {
-              transpileOnly: true,
-              configFile: 'tsconfig.json'
+              presets: [
+                '@babel/preset-env',
+                ['@babel/preset-react', { runtime: 'automatic' }]
+              ]
             }
           }
         ],
@@ -41,7 +42,7 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: ['.jsx', '.js'],
     alias: {
       '@': path.resolve(__dirname, 'src')
     }

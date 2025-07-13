@@ -8,8 +8,8 @@
     "build:dev": "webpack --mode development",
     "watch": "webpack --mode development --watch",
     "test": "jest",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "lint:fix": "eslint \"src/**/*.{js,jsx}\" --fix",
     "generate-plugin": "node scripts/generate-plugin.js",
     "new-plugin": "node scripts/generate-plugin.js"
   },
@@ -24,6 +24,7 @@
     "@tabler/icons-react": "^2.40.0",
     "axios": "^1.4.0",
     "crypto-js": "^4.1.1",
+    "loglevel": "^1.9.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",

@@ -1,4 +1,3 @@
-// src/options/pages/CredentialsPage.tsx
 import { useState, useEffect, useRef } from 'react';
 import {
   Container,
@@ -21,16 +20,9 @@ import {
 } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { ExtensionStorage } from '@/types';
 import { getCredentials, setCredentials, clearCredentials } from '@/shared/storage';
-import { sendValidateCredentials } from '@/shared/messages';
 
-interface CredentialsPageProps {
-  storageData: ExtensionStorage | null;
-  onRefresh: () => Promise<void>;
-}
-
-export function CredentialsPage({ storageData, onRefresh }: CredentialsPageProps) {
+export function CredentialsPage({ storageData, onRefresh }) {
   const [loading, setLoading] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
   const hasLoadedRef = useRef(false);
@@ -67,7 +59,7 @@ export function CredentialsPage({ storageData, onRefresh }: CredentialsPageProps
     loadCredentials();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = async (values: typeof form.values) => {
+  const handleSubmit = async (values) => {
     setLoading(true);
     
     try {
@@ -80,13 +72,21 @@ export function CredentialsPage({ storageData, onRefresh }: CredentialsPageProps
       });
 
       // Validate credentials - let it discover the region
-      const response = await sendValidateCredentials({
-        credentials: {
-          apiKey: values.apiKey,
-          appKey: values.appKey,
-        }
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'VALIDATE_CREDENTIALS',
+          credentials: {
+            apiKey: values.apiKey,
+            appKey: values.appKey
+          }
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
-
 
       if (response?.success && response?.isValid) {
         notifications.show({

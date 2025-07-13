@@ -13,7 +13,6 @@ import {
   Divider,
   ActionIcon,
   ThemeIcon,
-
 } from '@mantine/core';
 import {
   IconDashboard,
@@ -29,9 +28,7 @@ import {
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
-import { getStorage, storage } from '@/shared/storage';
-// import { sendValidateCredentials } from '@/shared/messages';
-import { ExtensionStorage } from '@/types';
+import { getStorage } from '@/shared/storage';
 import { createLogger } from '@/shared/logger';
 
 const debugLog = createLogger('OptionsApp');
@@ -44,7 +41,7 @@ import { PluginsPage } from '@/options/pages/PluginsPage';
 import { SettingsPage } from '@/options/pages/SettingsPage';
 
 export function OptionsApp() {
-  const [storageData, setStorageData] = useState<ExtensionStorage | null>(null);
+  const [storageData, setStorageData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -57,7 +54,7 @@ export function OptionsApp() {
       debugLog.debug('RAW_DATA', 'LOAD_DATA', { data, hasCredentials: !!data?.credentials, hasPlugins: !!data?.plugins });
       
       // Ensure data has the proper structure with defaults
-      const normalizedData: ExtensionStorage = {
+      const normalizedData = {
         credentials: data?.credentials || {
           apiKey: '',
           appKey: '',
@@ -75,36 +72,18 @@ export function OptionsApp() {
       };
       
       setStorageData(normalizedData);
-      debugLog.debug('SUCCESS', 'LOAD_DATA', { 
-        hasCredentials: !!normalizedData.credentials.apiKey,
-        isValid: normalizedData.credentials.isValid,
-        pluginCount: normalizedData.plugins.length 
-      });
+      debugLog.debug('SUCCESS', 'LOAD_DATA', { normalizedData });
     } catch (error) {
-      debugLog.error('Failed to load storage data', error);
-      
-      // Set default data if there's an error
-      const defaultData: ExtensionStorage = {
-        credentials: {
-          apiKey: '',
-          appKey: '',
-          site: 'us1',
-          isValid: false
-        },
-        helpfulLinks: [],
-        plugins: [],
-        settings: {
-          theme: 'light',
-          defaultPage: 'dashboard',
-          enableNotifications: true,
-          autoValidateCredentials: true
-        }
-      };
-      setStorageData(defaultData);
+      debugLog.debug('ERROR', 'LOAD_DATA', error);
+      console.error('Failed to load storage data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const refreshCredentials = async () => {
     if (!storageData?.credentials?.apiKey || !storageData?.credentials?.appKey) {
@@ -144,177 +123,177 @@ export function OptionsApp() {
         
         if (updatedData.credentials?.isValid) {
           notifications.show({
-            title: 'Credentials Refreshed',
-            message: 'Your Datadog credentials have been validated successfully.',
+            title: 'Credentials Validated',
+            message: `Successfully connected to Datadog ${updatedData.credentials.site?.toUpperCase()}`,
             color: 'green',
             icon: <IconCheck size={16} />
           });
         } else {
           notifications.show({
             title: 'Validation Failed',
-            message: 'Unable to validate your credentials. Please check your API keys.',
+            message: 'Unable to validate your Datadog credentials',
             color: 'red',
             icon: <IconX size={16} />
           });
         }
-      }, 3000);
+      }, 2000);
       
     } catch (error) {
       debugLog.debug('ERROR', 'REFRESH_CREDENTIALS', error);
       notifications.show({
-        title: 'Error',
-        message: 'Failed to refresh credentials. Please try again.',
+        title: 'Validation Error',
+        message: 'Failed to validate credentials',
         color: 'red',
         icon: <IconX size={16} />
       });
     }
   };
 
-  const openDatadogApp = () => {
-    const site = storageData?.credentials?.site || 'us1';
-    const url = `https://app.datadoghq.${site === 'us1' ? 'com' : site}`;
-    debugLog.debug('EXTERNAL', 'OPEN_DATADOG', { site, url });
-    chrome.tabs.create({ url });
-  };
-
-  useEffect(() => {
-    debugLog.debug('LIFECYCLE', 'OPTIONS_MOUNTED', {});
-    loadData();
-  }, []);
-
   if (loading) {
     return (
-      <Box p="xl">
-        <Text>Loading...</Text>
+      <Box p="xl" style={{ textAlign: 'center' }}>
+        <Text>Loading Datadog Sales Engineering Toolkit...</Text>
       </Box>
     );
   }
 
-  const navigation = [
-    { 
-      label: 'Dashboard', 
-      icon: IconDashboard, 
-      path: '/',
-      active: location.pathname === '/'
-    },
-    { 
-      label: 'Credentials', 
-      icon: IconKey, 
-      path: '/credentials',
-      active: location.pathname === '/credentials',
-      rightSection: storageData?.credentials?.isValid ? (
-        <ThemeIcon size="xs" color="green" variant="light">
-          <IconRefresh size={10} />
-        </ThemeIcon>
-      ) : (
-        <ThemeIcon size="xs" color="red" variant="light">
-          <IconRefresh size={10} />
-        </ThemeIcon>
-      )
-    },
-    { 
-      label: 'Helpful Links', 
-      icon: IconLink, 
-      path: '/links',
-      active: location.pathname === '/links',
-      rightSection: storageData?.helpfulLinks?.length ? (
-        <Badge size="xs" color="blue">
-          {storageData.helpfulLinks.length}
-        </Badge>
-      ) : null
-    },
-    { 
-      label: 'Plugins', 
-      icon: IconPuzzle, 
-      path: '/plugins',
-      active: location.pathname === '/plugins',
-      rightSection: storageData?.plugins?.filter(p => p.enabled).length ? (
-        <Badge size="xs" color="green">
-          {storageData.plugins.filter(p => p.enabled).length}
-        </Badge>
-      ) : null
-    },
-    { 
-      label: 'Settings', 
-      icon: IconSettings, 
-      path: '/settings',
-      active: location.pathname === '/settings'
-    }
-  ];
-
   return (
     <AppShell
-      navbar={{
-        width: 260,
-        breakpoint: 'sm'
+      navbar={{ 
+        width: { base: 300 }, 
+        breakpoint: 'sm' 
       }}
-      header={{ height: 60 }}
       padding="md"
     >
-      <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
+      <AppShell.Navbar p="md">
+        <Stack gap="sm">
+          {/* Header */}
           <Group>
-            <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'violet', to: 'blue' }}>
+            <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
               <IconBrandTabler size={20} />
             </ThemeIcon>
-            <Title order={3}>Datadog Sales Engineering Toolkit</Title>
+            <div>
+              <Title order={3} size="h4">Datadog Toolkit</Title>
+              <Text size="xs" c="dimmed">Sales Engineering</Text>
+            </div>
           </Group>
-          <Group>
-            <ActionIcon
-              variant="subtle"
-              onClick={refreshCredentials}
-              disabled={!storageData?.credentials?.apiKey}
-            >
-              <IconRefresh size={16} />
-            </ActionIcon>
-            <Button
-              variant="light"
-              leftSection={<IconExternalLink size={16} />}
-              onClick={openDatadogApp}
-              size="sm"
-            >
-              Open Datadog
-            </Button>
-          </Group>
-        </Group>
-      </AppShell.Header>
 
-      <AppShell.Navbar p="md">
-        <Stack gap="xs">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.path}
-              label={item.label}
-              leftSection={<item.icon size={16} />}
-              rightSection={item.rightSection}
-              active={item.active}
-              onClick={() => navigate(item.path)}
-              style={{
-                borderRadius: '4px',
-                padding: '8px 12px'
-              }}
-            />
-          ))}
-        </Stack>
-        
-        <Divider my="md" />
-        
-        <Stack gap="xs">
-          <Text size="sm" fw={500} c="dimmed">
-            Status
-          </Text>
-          <Group gap="xs">
+          <Divider />
+
+          {/* Status Badge */}
+          <Group justify="space-between">
+            <Text size="sm" fw={500}>Connection Status</Text>
             <Badge
               color={storageData?.credentials?.isValid ? 'green' : 'red'}
               variant="light"
               size="sm"
+              leftSection={storageData?.credentials?.isValid ? <IconCheck size={12} /> : <IconX size={12} />}
             >
               {storageData?.credentials?.isValid ? 'Connected' : 'Disconnected'}
             </Badge>
-            <Badge variant="light" size="sm">
-              {storageData?.credentials?.site?.toUpperCase() || 'No Site'}
-            </Badge>
           </Group>
+
+          {storageData?.credentials?.isValid && (
+            <Group justify="space-between">
+              <Text size="xs" c="dimmed">Region: {storageData.credentials.site?.toUpperCase()}</Text>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                onClick={refreshCredentials}
+                title="Refresh credentials"
+              >
+                <IconRefresh size={14} />
+              </ActionIcon>
+            </Group>
+          )}
+
+          <Divider />
+
+          {/* Navigation */}
+          <Stack gap="xs">
+            <NavLink
+              href="#"
+              label="Dashboard"
+              leftSection={<IconDashboard size={16} />}
+              active={location.pathname === '/'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/');
+              }}
+            />
+            <NavLink
+              href="#"
+              label="Credentials"
+              leftSection={<IconKey size={16} />}
+              active={location.pathname === '/credentials'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/credentials');
+              }}
+            />
+            <NavLink
+              href="#"
+              label="Helpful Links"
+              leftSection={<IconLink size={16} />}
+              active={location.pathname === '/links'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/links');
+              }}
+            />
+            <NavLink
+              href="#"
+              label="Plugins"
+              leftSection={<IconPuzzle size={16} />}
+              active={location.pathname === '/plugins'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/plugins');
+              }}
+            />
+            <NavLink
+              href="#"
+              label="Settings"
+              leftSection={<IconSettings size={16} />}
+              active={location.pathname === '/settings'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/settings');
+              }}
+            />
+          </Stack>
+
+          <Divider />
+
+          {/* External Links */}
+          <Stack gap="xs">
+            <Button
+              variant="subtle"
+              size="xs"
+              leftSection={<IconExternalLink size={14} />}
+              component="a"
+              href="https://docs.datadoghq.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+              justify="flex-start"
+            >
+              Datadog Docs
+            </Button>
+            <Button
+              variant="subtle"
+              size="xs"
+              leftSection={<IconExternalLink size={14} />}
+              component="a"
+              href="https://app.datadoghq.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+              justify="flex-start"
+            >
+              Datadog App
+            </Button>
+          </Stack>
         </Stack>
       </AppShell.Navbar>
 
@@ -329,4 +308,4 @@ export function OptionsApp() {
       </AppShell.Main>
     </AppShell>
   );
-} 
+}

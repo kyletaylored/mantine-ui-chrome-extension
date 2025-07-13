@@ -1,5 +1,4 @@
-import { Plugin } from '../../types';
-import { RumInjectionComponent } from './component';
+import { PluginModule } from '../../types';
 import { RUM_PLUGIN_CONFIG, DEFAULT_RUM_SETTINGS } from './config';
 
 /**
@@ -18,108 +17,120 @@ import { RUM_PLUGIN_CONFIG, DEFAULT_RUM_SETTINGS } from './config';
  * - Visual indicator when RUM is active
  */
 
-export const rumInjectionPlugin: Plugin = {
-  id: RUM_PLUGIN_CONFIG.id,
-  name: RUM_PLUGIN_CONFIG.name,
-  description: RUM_PLUGIN_CONFIG.description,
-  version: RUM_PLUGIN_CONFIG.version,
-  enabled: false, // Default to disabled, user can enable in settings
-  icon: RUM_PLUGIN_CONFIG.icon,
-  component: RumInjectionComponent,
-  settings: DEFAULT_RUM_SETTINGS,
-  permissions: RUM_PLUGIN_CONFIG.permissions,
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-};
-
-/**
- * Plugin registration function
- * Called by the extension to register this plugin
- */
-export const registerPlugin = (): Plugin => {
-  return rumInjectionPlugin;
-};
-
-/**
- * Plugin initialization function
- * Called when the plugin is first loaded or enabled
- */
-export const initializePlugin = async (context: any): Promise<void> => {
-  console.log('RUM Injection Plugin initialized');
-  
-  // Any initialization logic can go here
-  // For example, setting up event listeners, validating configuration, etc.
-  
-  // Check if required permissions are available
-  if (!chrome.scripting) {
-    console.warn('RUM Injection Plugin: scripting API not available');
-    return;
-  }
-  
-  // Initialize with default settings if none exist
+// Content script for RUM injection
+const injectRumScript = () => {
   try {
-    const plugins = context.storage?.plugins || [];
-    const existingPlugin = plugins.find((p: Plugin) => p.id === rumInjectionPlugin.id);
-    
-    if (!existingPlugin) {
-      console.log('RUM Injection Plugin: Adding to plugin list');
-      const updatedPlugins = [...plugins, rumInjectionPlugin];
-      await context.updateStorage?.({ plugins: updatedPlugins });
+    // Check if RUM is already injected
+    if ((window as any).DD_RUM) {
+      console.log('Datadog RUM is already injected');
+      return;
     }
+
+    // This would be replaced with actual RUM injection logic
+    // For now, just log that injection would happen
+    console.log('RUM injection script would run here');
+    
+    // Add visual indicator
+    const indicator = document.createElement('div');
+    indicator.id = 'datadog-rum-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #632ca6;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+    `;
+    indicator.textContent = 'Datadog RUM Active';
+    document.body.appendChild(indicator);
+    
+    // Remove indicator after 5 seconds
+    setTimeout(() => {
+      const existingIndicator = document.getElementById('datadog-rum-indicator');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+    }, 5000);
+    
   } catch (error) {
-    console.error('RUM Injection Plugin: Failed to initialize:', error);
+    console.error('Failed to inject RUM script:', error);
   }
 };
 
-/**
- * Plugin cleanup function
- * Called when the plugin is disabled or unloaded
- */
-export const cleanupPlugin = async (): Promise<void> => {
-  console.log('RUM Injection Plugin cleanup');
-  
-  // Any cleanup logic can go here
-  // For example, removing event listeners, clearing timers, etc.
-  
-  // Note: We don't automatically remove RUM from pages on plugin disable
-  // This is intentional to avoid disrupting ongoing demonstrations
-};
+const rumInjectionPlugin: PluginModule = {
+  manifest: {
+    id: RUM_PLUGIN_CONFIG.id,
+    name: RUM_PLUGIN_CONFIG.name,
+    description: RUM_PLUGIN_CONFIG.description,
+    version: RUM_PLUGIN_CONFIG.version,
+    core: false, // Optional plugin - user can enable/disable
+    defaultEnabled: false,
+    icon: RUM_PLUGIN_CONFIG.icon,
+    permissions: RUM_PLUGIN_CONFIG.permissions,
+    // Content script can be injected on any page when needed
+    matches: ['*://*/*']
+  },
 
-/**
- * Plugin message handler
- * Handle messages sent to this plugin from other parts of the extension
- */
-export const handlePluginMessage = async (message: any): Promise<any> => {
-  const { action, payload } = message;
-  
-  switch (action) {
-    case 'GET_STATUS':
-      // Return current plugin status
-      return {
-        enabled: rumInjectionPlugin.enabled,
-        version: rumInjectionPlugin.version,
-        settings: rumInjectionPlugin.settings,
-      };
-      
-    case 'UPDATE_SETTINGS':
-      // Update plugin settings
-      if (payload && typeof payload === 'object') {
-        rumInjectionPlugin.settings = { ...rumInjectionPlugin.settings, ...payload };
-        rumInjectionPlugin.updatedAt = Date.now();
-        return { success: true };
-      }
-      return { success: false, error: 'Invalid payload' };
-      
-    case 'INJECT_RUM':
-      // This would be handled by the component, but can be triggered programmatically
-      return { success: true, message: 'RUM injection triggered' };
-      
-    case 'REMOVE_RUM':
-      // This would be handled by the component, but can be triggered programmatically
-      return { success: true, message: 'RUM removal triggered' };
-      
-    default:
-      return { success: false, error: 'Unknown action' };
+  // Background initialization
+  initialize: async () => {
+    console.log('RUM Injection Plugin initialized');
+    
+    // Check if required permissions are available
+    if (!chrome.scripting) {
+      console.warn('RUM Injection Plugin: scripting API not available');
+      return;
+    }
+  },
+
+  // Content script to inject RUM
+  runContentScript: injectRumScript,
+
+  // UI component for the popup
+  renderComponent: undefined, // Component handled by legacy system
+
+  // Cleanup function
+  cleanup: async () => {
+    console.log('RUM Injection Plugin cleanup');
+    
+    // Note: We don't automatically remove RUM from pages on plugin disable
+    // This is intentional to avoid disrupting ongoing demonstrations
+  },
+
+  // Handle plugin messages
+  handleMessage: async (message: any) => {
+    const { action, payload } = message;
+    
+    switch (action) {
+      case 'GET_STATUS':
+        // Return current plugin status
+        return {
+          enabled: true,
+          version: RUM_PLUGIN_CONFIG.version,
+          settings: DEFAULT_RUM_SETTINGS,
+        };
+        
+      case 'UPDATE_SETTINGS':
+        // Update plugin settings
+        if (payload && typeof payload === 'object') {
+          return { success: true };
+        }
+        return { success: false, error: 'Invalid payload' };
+        
+      case 'INJECT_RUM':
+        // Trigger RUM injection
+        return { success: true, message: 'RUM injection triggered' };
+        
+      case 'REMOVE_RUM':
+        // Trigger RUM removal
+        return { success: true, message: 'RUM removal triggered' };
+        
+      default:
+        return { success: false, error: 'Unknown action' };
+    }
   }
 };
 

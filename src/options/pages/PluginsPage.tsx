@@ -23,6 +23,9 @@ import {
 } from '@tabler/icons-react';
 import { ExtensionStorage } from '@/types';
 import { storage } from '@/shared/storage';
+import { createLogger } from '@/shared/logger';
+
+const logger = createLogger('Plugins');
 
 interface PluginsPageProps {
   storageData: ExtensionStorage | null;
@@ -38,7 +41,7 @@ export function PluginsPage({ storageData, onRefresh }: PluginsPageProps) {
       if (plugin) {
         // Prevent disabling core plugins
         if (plugin.isCore) {
-          console.warn('Cannot disable core plugin:', pluginId);
+          logger.warn('Cannot disable core plugin:', pluginId);
           return;
         }
         
@@ -46,7 +49,7 @@ export function PluginsPage({ storageData, onRefresh }: PluginsPageProps) {
         await onRefresh();
       }
     } catch (error) {
-      console.error('Failed to toggle plugin:', error);
+      logger.error('Failed to toggle plugin:', error);
     }
   };
 
