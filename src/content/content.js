@@ -1,57 +1,64 @@
 // Content script for Datadog Sales Engineering Toolkit
 // This script runs in the context of web pages
 
-// Listen for messages from the extension
+import { createLogger } from '@/shared/logger';
+
+const logger = createLogger('Content');
+
+// Content script message handler using native Chrome API
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  handleContentMessage(request, sender, sendResponse);
-  return true;
+  logger.debug('Received message', request.type, request);
+  
+  // Handle async responses
+  Promise.resolve(handleMessage(request, sender))
+    .then(response => {
+      logger.debug('Handler response', request.type, response);
+      sendResponse(response || { success: true });
+    })
+    .catch(error => {
+      logger.error('Handler error', request.type, error);
+      sendResponse({ success: false, error: error.message });
+    });
+  
+  return true; // Keep listener active for async responses
 });
 
-async function handleContentMessage(request, sender, sendResponse) {
+async function handleMessage(request) {
   try {
     switch (request.type) {
+
       case 'INJECT_DATADOG_SCRIPT': {
         injectDatadogScript(request.script);
-        sendResponse({ success: true });
-        break;
+        return { success: true };
       }
         
       case 'GET_PAGE_INFO': {
         const pageInfo = getPageInfo();
-        sendResponse({ success: true, data: pageInfo });
-        break;
+        return { success: true, data: pageInfo };
       }
         
       case 'HIGHLIGHT_ELEMENTS': {
         highlightElements(request.selector);
-        sendResponse({ success: true });
-        break;
-      }
-        
-      case 'COLLECT_PERFORMANCE_DATA': {
-        const perfData = collectPerformanceData();
-        sendResponse({ success: true, data: perfData });
-        break;
+        return { success: true };
       }
         
       case 'GET_RUM_SESSION_DATA': {
         const rumData = getRumSessionData();
-        sendResponse(rumData);
-        break;
+        return rumData;
       }
         
       case 'SHOW_IN_PAGE_NOTIFICATION': {
         showInPageNotification(request.payload);
-        sendResponse({ success: true });
-        break;
+        return { success: true };
       }
         
       default:
-        sendResponse({ success: false, error: 'Unknown content message type' });
+        logger.warn('Unknown content message type:', request.type);
+        return { success: false, error: 'Unknown content message type' };
     }
   } catch (error) {
-    console.error('Content script error:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    logger.error('Content script error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -101,38 +108,6 @@ function highlightElements(selector) {
       el.style.outline = '';
     });
   }, 5000);
-}
-
-// Collect performance data
-function collectPerformanceData() {
-  const performance = window.performance;
-  const navigation = performance.getEntriesByType('navigation')[0];
-  const resources = performance.getEntriesByType('resource');
-  
-  return {
-    navigation: {
-      domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-      loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
-      totalTime: navigation.loadEventEnd - navigation.fetchStart,
-      dns: navigation.domainLookupEnd - navigation.domainLookupStart,
-      tcp: navigation.connectEnd - navigation.connectStart,
-      request: navigation.responseStart - navigation.requestStart,
-      response: navigation.responseEnd - navigation.responseStart,
-      dom: navigation.domComplete - navigation.domContentLoadedEventStart
-    },
-    resources: resources.map(resource => ({
-      name: resource.name,
-      duration: resource.duration,
-      size: resource.transferSize || 0,
-      type: resource.initiatorType || 'unknown'
-    })),
-    memory: performance.memory ? {
-      used: performance.memory.usedJSHeapSize,
-      total: performance.memory.totalJSHeapSize,
-      limit: performance.memory.jsHeapSizeLimit
-    } : null,
-    timing: performance.now()
-  };
 }
 
 // Get RUM session data
@@ -272,9 +247,12 @@ function showInPageNotification(config) {
     actionBtn?.addEventListener('click', () => {
       if (config.actionButton.action === 'view-datadog') {
         // This will be handled by the notification manager
-        chrome.runtime.sendMessage({
+        chrome.runtime.sendMessage({ 
           type: 'NOTIFICATION_ACTION',
-          payload: { action: config.actionButton.action, eventId: config.id }
+          action: config.actionButton.action, 
+          eventId: config.id 
+        }).catch(error => {
+          logger.error('Failed to send notification action', error);
         });
       }
       notification.style.animation = 'slideOutToRight 0.3s ease-in';
@@ -342,10 +320,14 @@ function getNotificationIcon(type) {
 }
 
 // Initialize content script
-console.log('Datadog Sales Engineering Toolkit content script loaded');
+logger.info('Datadog Sales Engineering Toolkit content script loaded');
 
 // Notify background script that content script is ready
-chrome.runtime.sendMessage({
-  type: 'CONTENT_SCRIPT_READY',
-  url: window.location.href
+chrome.runtime.sendMessage({ 
+  type: 'CONTENT_SCRIPT_READY', 
+  url: window.location.href 
+}).then(response => {
+  logger.debug('Content script ready notification sent', response);
+}).catch(error => {
+  logger.error('Failed to notify background script', error);
 });

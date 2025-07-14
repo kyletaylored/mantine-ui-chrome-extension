@@ -7,7 +7,6 @@ import {
   Card,
   Badge,
   ActionIcon,
-  Divider,
   Box,
   Alert,
   Switch,
@@ -21,10 +20,13 @@ import {
   IconCheck,
   IconX,
   IconEye,
-  IconCode,
-  IconBell
 } from '@tabler/icons-react';
-import { storage } from '@/shared/storage';
+import { storage, setCredentials } from '@/shared/storage';
+import { validateDatadogCredentials } from '@/shared/credential-validator';
+import { getActiveTab } from '@/shared/messages';
+import { createLogger } from '@/shared/logger';
+
+const logger = createLogger('PopupApp');
 
 export function PopupApp() {
   const [storageData, setStorageData] = useState(null);
@@ -40,7 +42,7 @@ export function PopupApp() {
       const data = await storage.get();
       setStorageData(data);
     } catch (error) {
-      console.error('Failed to load storage data:', error);
+      logger.error('Failed to load storage data:', error);
     } finally {
       setLoading(false);
     }
@@ -51,16 +53,14 @@ export function PopupApp() {
     
     setValidatingCredentials(true);
     try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'VALIDATE_CREDENTIALS',
-        credentials: storageData.credentials
-      });
+      const validatedCredentials = await validateDatadogCredentials(storageData.credentials);
       
-      if (response.success) {
+      if (validatedCredentials) {
+        await setCredentials(validatedCredentials);
         await loadStorageData();
       }
     } catch (error) {
-      console.error('Failed to validate credentials:', error);
+      logger.error('Failed to validate credentials:', error);
     } finally {
       setValidatingCredentials(false);
     }
@@ -95,7 +95,7 @@ export function PopupApp() {
     );
   }
 
-  const { credentials, plugins = [], helpfulLinks = [] } = storageData || {};
+  const { credentials, plugins = [], links = [] } = storageData || {};
 
   return (
     <Stack gap="sm" p="md">
@@ -147,7 +147,7 @@ export function PopupApp() {
           <Button
             variant="light"
             leftSection={<IconEye size={16} />}
-            onClick={() => chrome.runtime.sendMessage({ type: 'GET_ACTIVE_TAB' })}
+            onClick={() => getActiveTab()}
             fullWidth
           >
             Inspect Current Page
@@ -181,12 +181,12 @@ export function PopupApp() {
         </Card>
       )}
 
-      {/* Helpful Links */}
-      {helpfulLinks.length > 0 && (
+      {/* Links */}
+      {links.length > 0 && (
         <Card withBorder>
           <Text size="sm" fw={500} mb="xs">Quick Links</Text>
           <Stack gap="xs">
-            {helpfulLinks.slice(0, 3).map(link => (
+            {links.slice(0, 3).map(link => (
               <Anchor
                 key={link.id}
                 href={link.url}
@@ -197,9 +197,9 @@ export function PopupApp() {
                 {link.title}
               </Anchor>
             ))}
-            {helpfulLinks.length > 3 && (
+            {links.length > 3 && (
               <Text size="xs" c="dimmed">
-                +{helpfulLinks.length - 3} more in options
+                +{links.length - 3} more in options
               </Text>
             )}
           </Stack>

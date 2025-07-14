@@ -70,7 +70,7 @@ The idea originated from internal feedback indicating the repetitive nature of m
 ### Core Features
 
 * **Secure Storage & Validation:** Datadog API key and App key management with regional validation.
-* **Customizable Helpful Links:** Manageable quick-access resource links.
+* **Customizable Links:** Manageable quick-access resource links.
 * **Feature Plugin System:** Dynamic feature addition and management.
 
 ### User Benefits
@@ -92,7 +92,7 @@ The idea originated from internal feedback indicating the repetitive nature of m
 * Must Have:
 
   * API credential management
-  * Helpful Links
+  * Links
   * Pluggable Features Framework
   * Initial Plugin: RUM Injection
   * Initial Plugin: APM Tracing

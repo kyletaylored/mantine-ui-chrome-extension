@@ -1,0 +1,79 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "description": "Example plugin demonstrating the new plugin architecture with separated contexts",
+  "version": "1.0.0",
+  "author": "Datadog Sales Engineering Team",
+  "category": "utility",
+  "core": false,
+  "defaultEnabled": false,
+  "icon": "World",
+  "permissions": [
+    "storage",
+    "notifications",
+    "activeTab",
+    "scripting"
+  ],
+  "matches": [
+    "*://*/*"
+  ],
+  "contexts": {
+    "options": true,
+    "background": true,
+    "content": true
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "greeting": {
+        "type": "string",
+        "title": "Greeting Message",
+        "description": "Custom greeting to display",
+        "default": "Hello, World!",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "showNotifications": {
+        "type": "boolean",
+        "title": "Show Notifications",
+        "description": "Display browser notifications",
+        "default": true
+      },
+      "notificationInterval": {
+        "type": "number",
+        "title": "Notification Interval (minutes)",
+        "description": "How often to show notifications",
+        "default": 60,
+        "minimum": 1,
+        "maximum": 1440
+      },
+      "logLevel": {
+        "type": "string",
+        "title": "Log Level",
+        "description": "Logging verbosity",
+        "enum": ["debug", "info", "warn", "error"],
+        "enumNames": ["Debug", "Info", "Warning", "Error"],
+        "default": "info"
+      },
+      "enabledFeatures": {
+        "type": "array",
+        "title": "Enabled Features",
+        "description": "Select which features to enable",
+        "items": {
+          "type": "string",
+          "enum": ["logging", "analytics", "debugging"],
+          "enumNames": ["Logging", "Analytics", "Debugging"]
+        },
+        "default": ["logging"]
+      },
+      "pagePatterns": {
+        "type": "array",
+        "title": "Page Patterns",
+        "description": "URL patterns where plugin should be active",
+        "items": { "type": "string" },
+        "default": ["*"]
+      }
+    },
+    "required": ["greeting"]
+  }
+}

@@ -36,6 +36,7 @@ import {
 } from '@tabler/icons-react';
 import { getStorage } from '../shared/storage';
 import { generateTraceUrl, formatTimestamp, getStatusColor, truncateUrl } from '../plugins/apm-tracing/config';
+import { sendMessage } from '../shared/messages';
 
 /**
  * @typedef {Object} RumSessionData
@@ -77,9 +78,7 @@ export function TabbedPopupApp() {
   const loadRumSessionData = async () => {
     try {
       setRefreshingRum(true);
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_RUM_SESSION_DATA'
-      });
+      const response = await sendMessage('GET_RUM_SESSION_DATA');
       
       if (response.success) {
         setRumSessionData(response.data);
@@ -96,10 +95,7 @@ export function TabbedPopupApp() {
   const loadApmTraces = async () => {
     try {
       setRefreshingApm(true);
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_APM_TRACES',
-        filter: 'all'
-      });
+      const response = await sendMessage('GET_APM_TRACES', { filter: 'all' });
       
       if (response.success) {
         setApmTraces(response.traces || []);
@@ -127,7 +123,7 @@ export function TabbedPopupApp() {
     }
   };
 
-  const filteredLinks = storageData?.helpfulLinks?.filter(link =>
+  const filteredLinks = storageData?.links?.filter(link =>
     link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     link.url.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
@@ -347,7 +343,7 @@ export function TabbedPopupApp() {
               <Stack gap="sm">
                 <Text fw={500}>Quick Search</Text>
                 <TextInput
-                  placeholder="Search helpful links..."
+                  placeholder="Search links..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   leftSection={<IconSearch size={16} />}
@@ -356,10 +352,10 @@ export function TabbedPopupApp() {
               </Stack>
 
               <Stack gap="sm">
-                <Text fw={500}>Helpful Links</Text>
+                <Text fw={500}>Links</Text>
                 {filteredLinks.length === 0 ? (
                   <Alert color="gray" icon={<IconAlertCircle />}>
-                    {searchQuery ? 'No links match your search.' : 'No helpful links configured.'}
+                    {searchQuery ? 'No links match your search.' : 'No links configured.'}
                   </Alert>
                 ) : (
                   <Stack gap="xs">
@@ -393,7 +389,7 @@ export function TabbedPopupApp() {
                 <Button
                   variant="light"
                   leftSection={<IconEye size={16} />}
-                  onClick={() => chrome.runtime.sendMessage({ type: 'GET_ACTIVE_TAB' })}
+                  onClick={() => sendMessage('GET_ACTIVE_TAB')}
                   size="sm"
                   fullWidth
                 >

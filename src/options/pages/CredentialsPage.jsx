@@ -21,6 +21,7 @@ import {
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { getCredentials, setCredentials, clearCredentials } from '@/shared/storage';
+import { validateDatadogCredentials } from '@/shared/credential-validator';
 
 export function CredentialsPage({ storageData, onRefresh }) {
   const [loading, setLoading] = useState(false);
@@ -72,26 +73,18 @@ export function CredentialsPage({ storageData, onRefresh }) {
       });
 
       // Validate credentials - let it discover the region
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          type: 'VALIDATE_CREDENTIALS',
-          credentials: {
-            apiKey: values.apiKey,
-            appKey: values.appKey
-          }
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
+      const validatedCredentials = await validateDatadogCredentials({
+        apiKey: values.apiKey,
+        appKey: values.appKey
       });
 
-      if (response?.success && response?.isValid) {
+      if (validatedCredentials) {
+        // Update storage with validated credentials
+        await setCredentials(validatedCredentials);
+        
         notifications.show({
           title: 'Success',
-          message: 'Credentials saved and validated successfully!',
+          message: `Credentials saved and validated successfully for ${validatedCredentials.site?.toUpperCase()}!`,
           color: 'green',
           icon: <IconCheck size={16} />
         });
@@ -172,7 +165,7 @@ export function CredentialsPage({ storageData, onRefresh }) {
           </Group>
           
           <Text size="sm" c="dimmed">
-            Region: {storageData?.credentials.site?.toUpperCase() || 'Not detected'}
+            <strong>Region:</strong> {storageData?.credentials.site?.toUpperCase() || 'Not detected'}
           </Text>
         </Card>
 

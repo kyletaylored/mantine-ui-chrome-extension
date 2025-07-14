@@ -106,7 +106,7 @@ The extension supports a modular plugin system:
 - **APM Tracing**: Real-time application monitoring
 - **RUM Session Data**: User experience analytics
 - **Event Alerts**: Configurable notifications
-- **Helpful Links**: Quick access to resources
+- **Links**: Quick access to resources
 
 ## 🤝 Contributing
 

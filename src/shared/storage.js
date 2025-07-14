@@ -1,6 +1,7 @@
 // src/shared/storage.js
 import { getBucket } from '@extend-chrome/storage';
 import { createLogger } from '@/shared/logger';
+import { DEFAULT_DOCUMENTS } from '@/shared/values';
 
 const logger = createLogger('Storage');
 
@@ -8,10 +9,10 @@ const DEFAULT_STORAGE = {
   credentials: {
     apiKey: '',
     appKey: '',
-    site: 'us1',
+    site: '',
     isValid: false
   },
-  helpfulLinks: [],
+  links: DEFAULT_DOCUMENTS,
   plugins: [],
   settings: {
     theme: 'light',
@@ -26,7 +27,19 @@ const storage = getBucket('datadog-toolkit', 'local');
 
 // Base helpers
 export async function getStorage() {
-  return (await storage.get()) ?? DEFAULT_STORAGE;
+  const data = await storage.get();
+  if (!data) {
+    return DEFAULT_STORAGE;
+  }
+  
+  // Ensure default links are present if none exist
+  const mergedData = {
+    ...DEFAULT_STORAGE,
+    ...data,
+    links: (data.links && data.links.length > 0) ? data.links : DEFAULT_DOCUMENTS
+  };
+  
+  return mergedData;
 }
 
 export async function updateStorage(updates) {
@@ -51,18 +64,18 @@ export async function clearCredentials() {
     credentials: {
       apiKey: '',
       appKey: '',
-      site: 'us1',
+      site: '',
       isValid: false
     }
   });
 }
 
-// Helpful Links
-export async function getHelpfulLinks() {
-  return (await getStorage()).helpfulLinks;
+// Links
+export async function getLinks() {
+  return (await getStorage()).links;
 }
 
-export async function addHelpfulLink(link) {
+export async function addLink(link) {
   const newLink = {
     ...link,
     id: Date.now().toString(),
@@ -72,25 +85,25 @@ export async function addHelpfulLink(link) {
   
   await storage.set((prev) => ({
     ...prev,
-    helpfulLinks: [...prev.helpfulLinks, newLink]
+    links: [...prev.links, newLink]
   }));
   
   return newLink;
 }
 
-export async function updateHelpfulLink(id, updates) {
+export async function updateLink(id, updates) {
   await storage.set((prev) => ({
     ...prev,
-    helpfulLinks: prev.helpfulLinks.map((link) =>
+    links: prev.links.map((link) =>
       link.id === id ? { ...link, ...updates, updatedAt: Date.now() } : link
     )
   }));
 }
 
-export async function removeHelpfulLink(id) {
+export async function removeLink(id) {
   await storage.set((prev) => ({
     ...prev,
-    helpfulLinks: prev.helpfulLinks.filter((link) => link.id !== id)
+    links: prev.links.filter((link) => link.id !== id)
   }));
 }
 
@@ -164,23 +177,57 @@ export async function addPlugin(plugin) {
 }
 
 export async function updatePlugin(id, updates) {
-  await storage.set((prev) => ({
-    ...prev,
-    plugins: prev.plugins.map((plugin) => {
-      if (plugin.id !== id) return plugin;
-      if (plugin.isCore && updates.enabled === false) {
-        logger.warn(`Cannot disable core plugin: ${id}`);
-        return plugin;
-      }
-
+  await storage.set((prev) => {
+    const plugins = prev.plugins || [];
+    const existingPlugin = plugins.find(p => p.id === id);
+    
+    if (existingPlugin) {
+      // Update existing plugin
       return {
-        ...plugin,
-        ...updates,
-        enabled: plugin.isCore ? true : updates.enabled ?? plugin.enabled,
-        updatedAt: Date.now()
+        ...prev,
+        plugins: plugins.map((plugin) => {
+          if (plugin.id !== id) return plugin;
+          if (plugin.isCore && updates.enabled === false) {
+            logger.warn(`Cannot disable core plugin: ${id}`);
+            return plugin;
+          }
+
+          return {
+            ...plugin,
+            ...updates,
+            enabled: plugin.isCore ? true : updates.enabled ?? plugin.enabled,
+            updatedAt: Date.now()
+          };
+        })
       };
-    })
-  }));
+    } else {
+      // Add new plugin if it doesn't exist
+      const newPlugin = {
+        id,
+        enabled: updates.enabled ?? false,
+        settings: {},
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        ...updates
+      };
+      
+      return {
+        ...prev,
+        plugins: [...plugins, newPlugin]
+      };
+    }
+  });
+}
+
+export async function getPluginSettings(pluginId) {
+  const plugins = await getPlugins();
+  const plugin = plugins.find(p => p.id === pluginId);
+  return plugin?.settings || {};
+}
+
+export async function setPluginSettings(pluginId, settings) {
+  await updatePlugin(pluginId, { settings });
+  logger.info(`Settings updated for plugin: ${pluginId}`, settings);
 }
 
 export async function removePlugin(id) {

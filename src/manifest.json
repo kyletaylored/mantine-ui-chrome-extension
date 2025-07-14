@@ -13,10 +13,10 @@
   "host_permissions": [
     "https://api.datadoghq.com/*",
     "https://api.datadoghq.eu/*",
-    "https://api.ddog-gov.com/*",
     "https://api.us3.datadoghq.com/*",
     "https://api.us5.datadoghq.com/*",
     "https://api.ap1.datadoghq.com/*",
+    "https://api.ap2.datadoghq.com/*",
     "http://localhost:*/*",
     "https://*/*"
   ],
@@ -38,6 +38,7 @@
     }
   ],
   "icons": {
+    "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "content_security_policy": {

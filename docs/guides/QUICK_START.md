@@ -51,7 +51,7 @@ npm run build:prod
 ### 3. Explore Features
 - **Dashboard**: Overview of extension status
 - **Settings**: Configure global preferences
-- **Helpful Links**: Quick access to Datadog resources
+- **Links**: Quick access to Datadog resources
 
 ## 🔧 Development Mode (2 minutes)
 

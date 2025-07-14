@@ -38,6 +38,43 @@ const prompt = (question) => {
   });
 };
 
+// Validate icon exists in our pre-imported icon map
+function validateIcon(iconName) {
+  if (!iconName) return false;
+  
+  // Icons available in our pre-imported map
+  const availableIcons = [
+    'Puzzle', 'Eye', 'Code', 'Bell', 'Settings', 'Database', 'Upload', 'Download', 
+    'Shield', 'World', 'Chart', 'Cloud', 'Lock', 'Robot', 'Speedboat', 'Activity', 
+    'AlertCircle', 'Archive', 'ArrowRight', 'BarChart', 'Book', 'Bug', 'Camera', 
+    'Check', 'Circle', 'Copy', 'Edit', 'File', 'Folder', 'Globe', 'Hash', 'Home', 
+    'Info', 'Mail', 'Menu', 'Notification', 'Package', 'Phone', 'Plus', 'Refresh', 
+    'Send', 'Server', 'Share', 'Terminal', 'Trash', 'Users', 'Wifi', 'X'
+  ];
+  
+  return availableIcons.includes(iconName);
+}
+
+// Get icon suggestions
+function getIconSuggestions() {
+  return [
+    'Eye - Monitoring, viewing, inspection',
+    'Code - Development, scripting, technical features', 
+    'Bell - Notifications, alerts, monitoring',
+    'Settings - Configuration, preferences',
+    'Database - Data management, storage',
+    'Upload - Data injection, importing',
+    'Download - Data extraction, exporting', 
+    'Shield - Security, protection features',
+    'Speedboat - Fast operations, performance',
+    'Robot - Automation, AI features',
+    'Chart - Analytics, reporting',
+    'Cloud - Cloud services, APIs',
+    'Lock - Security, authentication',
+    'Puzzle - Generic plugin (default fallback)'
+  ];
+}
+
 // Validate plugin ID
 function validatePluginId(id) {
   if (!id) return 'Plugin ID is required';
@@ -72,45 +109,10 @@ function generatePluginFiles(config) {
     log.warning(`Plugin directory already exists: ${pluginDir}`);
   }
 
-  // Generate manifest.json
-  const manifest = {
-    id: config.id,
-    name: config.name,
-    description: config.description,
-    version: "1.0.0",
-    author: config.author,
-    category: config.category,
-    icon: config.icon,
-    isCore: config.isCore,
-    permissions: config.permissions.filter(p => p.trim()),
-    settings: generateSettingsSchema(config)
-  };
-
-  fs.writeFileSync(
-    path.join(pluginDir, 'manifest.json'),
-    JSON.stringify(manifest, null, 2)
-  );
-  log.success('Generated manifest.json');
-
-  // Generate types.ts
-  const typesContent = generateTypesFile(config);
-  fs.writeFileSync(path.join(pluginDir, 'types.ts'), typesContent);
-  log.success('Generated types.ts');
-
-  // Generate config.ts
-  const configContent = generateConfigFile(config);
-  fs.writeFileSync(path.join(pluginDir, 'config.ts'), configContent);
-  log.success('Generated config.ts');
-
-  // Generate component.tsx
-  const componentContent = generateComponentFile(config);
-  fs.writeFileSync(path.join(pluginDir, 'component.tsx'), componentContent);
-  log.success('Generated component.tsx');
-
-  // Generate index.ts
+  // Generate index.js
   const indexContent = generateIndexFile(config);
-  fs.writeFileSync(path.join(pluginDir, 'index.ts'), indexContent);
-  log.success('Generated index.ts');
+  fs.writeFileSync(path.join(pluginDir, 'index.js'), indexContent);
+  log.success('Generated index.js');
 
   // Generate README.md
   const readmeContent = generateReadmeFile(config);
@@ -118,505 +120,389 @@ function generatePluginFiles(config) {
   log.success('Generated README.md');
 }
 
-function generateSettingsSchema(config) {
-  const settings = {
-    enabled: {
-      type: "boolean",
-      label: "Enable Plugin",
-      description: `Enable or disable the ${config.name} plugin`,
-      default: !config.isCore
-    }
+function generateConfigSchema(config) {
+  const schema = {
+    type: 'object',
+    properties: {},
+    required: []
   };
 
-  // Add custom settings based on category
-  if (config.category === 'monitoring') {
-    settings.refreshInterval = {
-      type: "number",
-      label: "Refresh Interval (seconds)",
-      description: "How often to refresh data",
-      default: 30,
-      min: 5,
-      max: 300
-    };
-  }
-
-  if (config.category === 'injection') {
-    settings.autoInject = {
-      type: "boolean", 
-      label: "Auto Inject",
-      description: "Automatically inject scripts when pages load",
+  // Always include enable option for optional plugins
+  if (!config.isCore) {
+    schema.properties.enabled = {
+      type: 'boolean',
+      title: 'Enable Plugin',
+      description: `Enable or disable the ${config.name} plugin`,
       default: false
     };
   }
 
-  return settings;
-}
+  // Add category-specific settings
+  if (config.category === 'monitoring') {
+    schema.properties.refreshInterval = {
+      type: 'number',
+      title: 'Refresh Interval (seconds)',
+      description: 'How often to refresh data',
+      default: 30,
+      minimum: 5,
+      maximum: 300
+    };
+    schema.properties.autoRefresh = {
+      type: 'boolean',
+      title: 'Auto Refresh',
+      description: 'Automatically refresh data',
+      default: true
+    };
+  }
 
-function generateTypesFile(config) {
-  const pascalName = toPascalCase(config.id);
-  
-  return `export interface ${pascalName}Settings {
-  enabled: boolean;
-  ${config.category === 'monitoring' ? 'refreshInterval: number;' : ''}
-  ${config.category === 'injection' ? 'autoInject: boolean;' : ''}
-}
+  if (config.category === 'injection') {
+    schema.properties.autoInject = {
+      type: 'boolean',
+      title: 'Auto Inject',
+      description: 'Automatically inject scripts when pages load',
+      default: false
+    };
+    schema.properties.targetDomains = {
+      type: 'array',
+      title: 'Target Domains',
+      description: 'Domains to inject scripts into',
+      items: { type: 'string' },
+      default: ['*']
+    };
+  }
 
-export interface ${pascalName}Data {
-  id: string;
-  timestamp: number;
-  status: 'success' | 'error' | 'pending';
-  message?: string;
-  data?: any;
-}
+  if (config.category === 'utility') {
+    schema.properties.debugMode = {
+      type: 'boolean',
+      title: 'Debug Mode',
+      description: 'Enable debug logging',
+      default: false
+    };
+  }
 
-export interface ${pascalName}Result {
-  success: boolean;
-  data?: ${pascalName}Data;
-  error?: string;
-}
-
-export interface ${pascalName}Config {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  permissions: string[];
-}
-`;
-}
-
-function generateConfigFile(config) {
-  const pascalName = toPascalCase(config.id);
-  const constantName = config.id.toUpperCase().replace(/-/g, '_');
-  
-  return `import { ${pascalName}Settings, ${pascalName}Config } from './types';
-
-export const ${constantName}_PLUGIN_CONFIG: ${pascalName}Config = {
-  id: '${config.id}',
-  name: '${config.name}',
-  description: '${config.description}',
-  version: '1.0.0',
-  permissions: ${JSON.stringify(config.permissions.filter(p => p.trim()), null, 2)},
-};
-
-export const DEFAULT_${constantName}_SETTINGS: ${pascalName}Settings = {
-  enabled: ${!config.isCore},${config.category === 'monitoring' ? '\n  refreshInterval: 30,' : ''}${config.category === 'injection' ? '\n  autoInject: false,' : ''}
-};
-
-/**
- * ${config.name} utility functions
- */
-
-export const validate${pascalName}Settings = (settings: Partial<${pascalName}Settings>): ${pascalName}Settings => {
-  return {
-    enabled: settings.enabled ?? DEFAULT_${constantName}_SETTINGS.enabled,${config.category === 'monitoring' ? `
-    refreshInterval: Math.max(5, Math.min(300, settings.refreshInterval ?? DEFAULT_${constantName}_SETTINGS.refreshInterval)),` : ''}${config.category === 'injection' ? `
-    autoInject: settings.autoInject ?? DEFAULT_${constantName}_SETTINGS.autoInject,` : ''}
-  };
-};
-
-export const format${pascalName}Data = (data: any): string => {
-  if (!data) return 'No data available';
-  
-  // Add custom formatting logic here
-  return JSON.stringify(data, null, 2);
-};
-
-/**
- * Plugin-specific helper functions
- * Add your custom utility functions here
- */
-export const initialize${pascalName} = async (): Promise<void> => {
-  console.log('Initializing ${config.name} plugin...');
-  // Add initialization logic here
-};
-
-export const cleanup${pascalName} = async (): Promise<void> => {
-  console.log('Cleaning up ${config.name} plugin...');
-  // Add cleanup logic here
-};
-`;
-}
-
-function generateComponentFile(config) {
-  const pascalName = toPascalCase(config.id);
-  const constantName = config.id.toUpperCase().replace(/-/g, '_');
-  
-  return `import React, { useState, useEffect } from 'react';
-import {
-  Stack,
-  Card,
-  Text,
-  Group,
-  Button,
-  Alert,
-  Switch,
-  ActionIcon,
-  Paper,
-  LoadingOverlay,
-  Tabs,
-  Box,
-  Badge
-} from '@mantine/core';
-import {
-  IconRefresh,
-  IconSettings,
-  IconInfoCircle,
-  IconCheck,
-  IconAlertCircle,
-  ${config.icon === '🔧' ? 'IconTool' : config.icon === '📊' ? 'IconChartBar' : config.icon === '🚀' ? 'IconRocket' : 'IconPuzzle'}
-} from '@tabler/icons-react';
-import { PluginContext } from '../../types';
-import { 
-  ${pascalName}Settings,
-  ${pascalName}Data 
-} from './types';
-import { 
-  DEFAULT_${constantName}_SETTINGS,
-  validate${pascalName}Settings,
-  format${pascalName}Data
-} from './config';
-
-interface ${pascalName}ComponentProps {
-  context: PluginContext;
-}
-
-export const ${pascalName}Component: React.FC<${pascalName}ComponentProps> = ({ context }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<${pascalName}Data | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>('main');
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-
-  // Get current plugin settings
-  const currentPlugin = context.storage.plugins.find(p => p.id === '${config.id}');
-  const settings = validate${pascalName}Settings(currentPlugin?.settings || {});
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // TODO: Implement your data loading logic here
-      // Example: Send message to background script
-      const response = await chrome.runtime.sendMessage({
-        type: '${config.id.toUpperCase().replace(/-/g, '_')}_GET_DATA'
-      });
-      
-      if (response.success) {
-        setData(response.data);
-        setLastRefresh(new Date());
-      } else {
-        console.error('Failed to load ${config.name} data:', response.error);
-      }
-    } catch (error) {
-      console.error('Failed to load ${config.name} data:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  // Add example API endpoint setting
+  schema.properties.apiEndpoint = {
+    type: 'string',
+    title: 'API Endpoint',
+    description: 'Custom API endpoint URL',
+    default: 'https://api.datadoghq.com'
   };
 
-  const updateSettings = async (newSettings: Partial<${pascalName}Settings>) => {
-    const updatedSettings = validate${pascalName}Settings({ ...settings, ...newSettings });
-    const updatedPlugins = context.storage.plugins.map(plugin =>
-      plugin.id === '${config.id}' 
-        ? { ...plugin, settings: updatedSettings, updatedAt: Date.now() }
-        : plugin
-    );
-    
-    await context.updateStorage({ plugins: updatedPlugins });
-  };
-
-  const handleAction = async () => {
-    try {
-      setIsLoading(true);
-      
-      // TODO: Implement your main action logic here
-      await chrome.runtime.sendMessage({
-        type: '${config.id.toUpperCase().replace(/-/g, '_')}_EXECUTE_ACTION'
-      });
-      
-      // Reload data after action
-      await loadData();
-    } catch (error) {
-      console.error('Failed to execute ${config.name} action:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Box>
-      <LoadingOverlay visible={isLoading} />
-      
-      <Tabs value={activeTab} onChange={setActiveTab}>
-        <Tabs.List>
-          <Tabs.Tab value="main" leftSection={<${config.icon === '🔧' ? 'IconTool' : config.icon === '📊' ? 'IconChartBar' : config.icon === '🚀' ? 'IconRocket' : 'IconPuzzle'} size={16} />}>
-            ${config.name}
-          </Tabs.Tab>
-          <Tabs.Tab value="settings" leftSection={<IconSettings size={16} />}>
-            Settings
-          </Tabs.Tab>
-        </Tabs.List>
-
-        {/* Main Tab */}
-        <Tabs.Panel value="main" pt="md">
-          <Stack gap="md">
-            {/* Header with refresh */}
-            <Group justify="space-between">
-              <Text fw={500}>${config.name}</Text>
-              <Group gap="xs">
-                {lastRefresh && (
-                  <Text size="xs" c="dimmed">
-                    Last updated: {lastRefresh.toLocaleTimeString()}
-                  </Text>
-                )}
-                <ActionIcon 
-                  variant="subtle" 
-                  onClick={loadData}
-                  loading={isLoading}
-                >
-                  <IconRefresh size={16} />
-                </ActionIcon>
-              </Group>
-            </Group>
-
-            {/* Status */}
-            <Alert color={data ? 'green' : 'gray'} icon={data ? <IconCheck size={16} /> : <IconInfoCircle size={16} />}>
-              <Text size="sm">
-                {data ? 'Plugin is active and working' : 'No data available'}
-              </Text>
-            </Alert>
-
-            {/* Data Display */}
-            {data && (
-              <Card withBorder>
-                <Stack gap="md">
-                  <Group justify="space-between">
-                    <Text fw={500} size="sm">Plugin Data</Text>
-                    <Badge color={data.status === 'success' ? 'green' : data.status === 'error' ? 'red' : 'yellow'}>
-                      {data.status}
-                    </Badge>
-                  </Group>
-                  
-                  <Paper p="sm" bg="gray.0">
-                    <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                      {format${pascalName}Data(data)}
-                    </Text>
-                  </Paper>
-                </Stack>
-              </Card>
-            )}
-
-            {/* Action Button */}
-            <Button
-              onClick={handleAction}
-              loading={isLoading}
-              disabled={!settings.enabled}
-              fullWidth
-            >
-              Execute ${config.name} Action
-            </Button>
-          </Stack>
-        </Tabs.Panel>
-
-        {/* Settings Tab */}
-        <Tabs.Panel value="settings" pt="md">
-          <Stack gap="md">
-            <Text fw={500}>Plugin Settings</Text>
-            
-            <Paper p="md" withBorder>
-              <Stack gap="md">
-                ${config.isCore ? `
-                <Alert color="violet" icon={<IconInfoCircle size={16} />}>
-                  <Text size="sm">
-                    This is a core plugin and cannot be disabled.
-                  </Text>
-                </Alert>` : `
-                <Switch
-                  label="Enable Plugin"
-                  description="Enable or disable the ${config.name} plugin"
-                  checked={settings.enabled}
-                  onChange={(event) => updateSettings({ enabled: event.currentTarget.checked })}
-                />`}
-                
-                ${config.category === 'monitoring' ? `
-                <div>
-                  <Text size="sm" fw={500} mb="xs">Refresh Interval</Text>
-                  <Text size="xs" c="dimmed" mb="sm">
-                    How often to refresh data (5-300 seconds)
-                  </Text>
-                  <input
-                    type="number"
-                    min="5"
-                    max="300"
-                    value={settings.refreshInterval}
-                    onChange={(e) => updateSettings({ refreshInterval: parseInt(e.target.value) || 30 })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  />
-                </div>` : ''}
-                
-                ${config.category === 'injection' ? `
-                <Switch
-                  label="Auto Inject"
-                  description="Automatically inject scripts when pages load"
-                  checked={settings.autoInject}
-                  onChange={(event) => updateSettings({ autoInject: event.currentTarget.checked })}
-                />` : ''}
-              </Stack>
-            </Paper>
-
-            <Alert color="blue" icon={<IconInfoCircle size={16} />}>
-              <Text size="sm">
-                ${config.description}
-              </Text>
-            </Alert>
-          </Stack>
-        </Tabs.Panel>
-      </Tabs>
-    </Box>
-  );
-};
-`;
+  return schema;
 }
 
 function generateIndexFile(config) {
   const pascalName = toPascalCase(config.id);
-  const constantName = config.id.toUpperCase().replace(/-/g, '_');
+  const configSchema = generateConfigSchema(config);
   
-  return `import { Plugin } from '../../types';
-import { ${pascalName}Component } from './component';
-import { 
-  ${constantName}_PLUGIN_CONFIG, 
-  DEFAULT_${constantName}_SETTINGS,
-  initialize${pascalName},
-  cleanup${pascalName}
-} from './config';
+  return `// ${config.name} Plugin - JavaScript implementation
+// ${config.description}
 
-/**
- * ${config.name} Plugin
- * 
- * ${config.description}
- * 
- * ${config.isCore ? 'This is a CORE plugin that cannot be disabled by users.' : 'This is an optional plugin that can be enabled/disabled by users.'}
- * 
- * Features:
- * - TODO: Add feature list
- * - TODO: Add feature list
- * - TODO: Add feature list
- */
-
-export const ${toCamelCase(config.id)}Plugin: Plugin = {
-  id: ${constantName}_PLUGIN_CONFIG.id,
-  name: ${constantName}_PLUGIN_CONFIG.name,
-  description: ${constantName}_PLUGIN_CONFIG.description,
-  version: ${constantName}_PLUGIN_CONFIG.version,
-  enabled: ${config.isCore}, // ${config.isCore ? 'Always enabled (core plugin)' : 'Default to disabled, user can enable in settings'}
-  isCore: ${config.isCore}, // ${config.isCore ? 'Cannot be disabled by users' : 'Can be enabled/disabled by users'}
-  icon: '${config.icon}',
-  component: ${pascalName}Component,
-  settings: DEFAULT_${constantName}_SETTINGS,
-  permissions: ${constantName}_PLUGIN_CONFIG.permissions,
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-};
-
-/**
- * Plugin registration function
- * Called by the extension to register this plugin
- */
-export const registerPlugin = (): Plugin => {
-  return ${toCamelCase(config.id)}Plugin;
-};
-
-/**
- * Plugin initialization function
- * Called when the plugin is first loaded${config.isCore ? ' or on extension startup' : ' or enabled'}
- */
-export const initializePlugin = async (context: any): Promise<void> => {
-  console.log('${config.name} Plugin initialized${config.isCore ? ' (core plugin)' : ''}');
-  
-  ${config.isCore ? '// Core plugins are always enabled, so no need to check enabled status' : `// Check if plugin is enabled
-  const plugins = context.storage?.plugins || [];
-  const existingPlugin = plugins.find((p: Plugin) => p.id === ${toCamelCase(config.id)}Plugin.id);
-  
-  if (!existingPlugin?.enabled) {
-    console.log('${config.name} Plugin: Not enabled, skipping initialization');
-    return;
-  }`}
-  
-  // Initialize the plugin
-  await initialize${pascalName}();
-  
-  // Initialize with default settings if none exist
-  try {
-    const plugins = context.storage?.plugins || [];
-    const existingPlugin = plugins.find((p: Plugin) => p.id === ${toCamelCase(config.id)}Plugin.id);
+const ${toCamelCase(config.id)}Plugin = {
+  manifest: {
+    id: '${config.id}',
+    name: '${config.name}',
+    description: '${config.description}',
+    version: '1.0.0',
+    core: ${config.isCore},
+    defaultEnabled: ${config.isCore || config.defaultEnabled},
+    icon: '${config.icon}',
+    permissions: ${JSON.stringify(config.permissions.filter(p => p.trim()), null, 4)},
     
-    if (!existingPlugin) {
-      console.log('${config.name} Plugin: Adding to plugin list${config.isCore ? ' as core plugin' : ''}');
-      const updatedPlugins = [...plugins, ${toCamelCase(config.id)}Plugin];
-      await context.updateStorage?.({ plugins: updatedPlugins });
-    }${config.isCore ? ` else if (!existingPlugin.isCore) {
-      // Upgrade existing plugin to core status
-      console.log('${config.name} Plugin: Upgrading to core plugin status');
-      const updatedPlugins = plugins.map((p: Plugin) =>
-        p.id === ${toCamelCase(config.id)}Plugin.id 
-          ? { ...p, isCore: true, enabled: true, updatedAt: Date.now() }
-          : p
-      );
-      await context.updateStorage?.({ plugins: updatedPlugins });
+    // Configuration schema for dynamic form generation
+    configSchema: ${JSON.stringify(configSchema, null, 4)}
+  },
+
+  // Plugin state
+  settings: {},
+  initialized: false,
+
+  // Initialize the plugin
+  initialize: async () => {
+    console.log('${config.name} Plugin initialized');
+    
+    try {
+      // Load plugin settings
+      ${toCamelCase(config.id)}Plugin.settings = await ${toCamelCase(config.id)}Plugin.getSettings();
+      ${toCamelCase(config.id)}Plugin.initialized = true;
+      
+      ${config.category === 'monitoring' ? `
+      // Start monitoring if auto-refresh is enabled
+      if (${toCamelCase(config.id)}Plugin.settings.autoRefresh) {
+        ${toCamelCase(config.id)}Plugin.startMonitoring();
+      }` : ''}
+      
+      ${config.category === 'injection' ? `
+      // Set up injection listeners if auto-inject is enabled
+      if (${toCamelCase(config.id)}Plugin.settings.autoInject) {
+        ${toCamelCase(config.id)}Plugin.setupInjectionListeners();
+      }` : ''}
+      
+      ${toCamelCase(config.id)}Plugin.log('info', 'Plugin initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize ${config.name} Plugin:', error);
+    }
+  },
+
+  // Cleanup when plugin is disabled
+  cleanup: async () => {
+    console.log('${config.name} Plugin cleanup');
+    
+    try {
+      ${config.category === 'monitoring' ? `
+      if (${toCamelCase(config.id)}Plugin.monitoringInterval) {
+        clearInterval(${toCamelCase(config.id)}Plugin.monitoringInterval);
+        ${toCamelCase(config.id)}Plugin.monitoringInterval = null;
+      }` : ''}
+      
+      ${toCamelCase(config.id)}Plugin.initialized = false;
+      ${toCamelCase(config.id)}Plugin.log('info', 'Plugin cleaned up successfully');
+    } catch (error) {
+      console.error('Failed to cleanup ${config.name} Plugin:', error);
+    }
+  },
+
+  // Handle messages from other parts of the extension
+  handleMessage: async (message) => {
+    const { action, payload } = message;
+    
+    ${toCamelCase(config.id)}Plugin.log('debug', \`Received message: \${action}\`, payload);
+    
+    try {
+      switch (action) {
+        case 'GET_STATUS':
+          return {
+            success: true,
+            data: {
+              enabled: ${toCamelCase(config.id)}Plugin.initialized,
+              version: ${toCamelCase(config.id)}Plugin.manifest.version,
+              settings: ${toCamelCase(config.id)}Plugin.settings
+            }
+          };
+          
+        case 'UPDATE_SETTINGS':
+          if (payload && typeof payload === 'object') {
+            const oldSettings = { ...${toCamelCase(config.id)}Plugin.settings };
+            ${toCamelCase(config.id)}Plugin.settings = { ...${toCamelCase(config.id)}Plugin.settings, ...payload };
+            
+            ${toCamelCase(config.id)}Plugin.log('info', 'Settings updated', {
+              old: oldSettings,
+              new: ${toCamelCase(config.id)}Plugin.settings
+            });
+            
+            // Apply settings changes
+            await ${toCamelCase(config.id)}Plugin.applySettings(oldSettings);
+            
+            return { success: true };
+          }
+          return { success: false, error: 'Invalid settings payload' };
+          
+        case 'EXECUTE_ACTION':
+          // TODO: Implement your main plugin action
+          ${toCamelCase(config.id)}Plugin.log('info', 'Executing main action');
+          return { 
+            success: true, 
+            message: '${config.name} action executed successfully',
+            timestamp: Date.now()
+          };
+          
+        case 'GET_DATA':
+          // TODO: Implement data retrieval logic
+          return {
+            success: true,
+            data: {
+              pluginId: '${config.id}',
+              timestamp: Date.now(),
+              status: 'active',
+              sampleData: 'This is sample data from ${config.name}'
+            }
+          };
+          
+        default:
+          ${toCamelCase(config.id)}Plugin.log('warn', \`Unknown action: \${action}\`);
+          return { success: false, error: 'Unknown action' };
+      }
+    } catch (error) {
+      ${toCamelCase(config.id)}Plugin.log('error', 'Error handling message', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Content script runner (if needed)
+  runContentScript: async (settings) => {
+    // TODO: Implement content script logic
+    ${toCamelCase(config.id)}Plugin.log('info', 'Running content script with settings', settings);
+  },
+
+  // Helper methods
+  getSettings: async () => {
+    // In real implementation, this would load from storage
+    // For now, return defaults from config schema
+    const defaults = {};
+    const schema = ${toCamelCase(config.id)}Plugin.manifest.configSchema;
+    
+    if (schema && schema.properties) {
+      Object.keys(schema.properties).forEach(key => {
+        defaults[key] = schema.properties[key].default;
+      });
+    }
+    
+    return defaults;
+  },
+
+  applySettings: async (oldSettings) => {
+    ${config.category === 'monitoring' ? `
+    // Handle monitoring settings changes
+    if (oldSettings.autoRefresh !== ${toCamelCase(config.id)}Plugin.settings.autoRefresh ||
+        oldSettings.refreshInterval !== ${toCamelCase(config.id)}Plugin.settings.refreshInterval) {
+      if (${toCamelCase(config.id)}Plugin.settings.autoRefresh) {
+        ${toCamelCase(config.id)}Plugin.startMonitoring();
+      } else {
+        ${toCamelCase(config.id)}Plugin.stopMonitoring();
+      }
     }` : ''}
-  } catch (error) {
-    console.error('${config.name} Plugin: Failed to initialize:', error);
-  }
-};
+    
+    ${config.category === 'injection' ? `
+    // Handle injection settings changes
+    if (oldSettings.autoInject !== ${toCamelCase(config.id)}Plugin.settings.autoInject) {
+      if (${toCamelCase(config.id)}Plugin.settings.autoInject) {
+        ${toCamelCase(config.id)}Plugin.setupInjectionListeners();
+      } else {
+        ${toCamelCase(config.id)}Plugin.removeInjectionListeners();
+      }
+    }` : ''}
+  },
 
-/**
- * Plugin cleanup function
- * Called when the plugin is disabled${config.isCore ? ' or extension is uninstalled' : ' or uninstalled'}
- * ${config.isCore ? 'Note: Core plugins cannot be individually disabled' : ''}
- */
-export const cleanupPlugin = async (): Promise<void> => {
-  console.log('${config.name} Plugin: Cleanup${config.isCore ? ' (core plugin cannot be disabled)' : ''}');
-  ${config.isCore ? '// Core plugins don\'t need cleanup as they\'re always active' : 'await cleanup' + pascalName + '();'}
-};
+  log: (level, message, data = null) => {
+    const logLevels = ['debug', 'info', 'warn', 'error'];
+    const currentLevel = ${toCamelCase(config.id)}Plugin.settings.debugMode ? 'debug' : 'info';
+    const currentLevelIndex = logLevels.indexOf(currentLevel);
+    const messageLevelIndex = logLevels.indexOf(level);
+    
+    if (messageLevelIndex >= currentLevelIndex) {
+      const timestamp = new Date().toISOString();
+      const logMessage = \`[\${timestamp}] [${pascalName}] [\${level.toUpperCase()}] \${message}\`;
+      
+      if (data) {
+        console[level](logMessage, data);
+      } else {
+        console[level](logMessage);
+      }
+    }
+  }${config.category === 'monitoring' ? `,
 
-/**
- * Handle plugin-specific messages
- * Called when background script receives plugin messages
- */
-export const handlePluginMessage = async (message: any): Promise<any> => {
-  const { action } = message;
+  // Monitoring-specific methods
+  monitoringInterval: null,
   
-  switch (action) {
-    case 'GET_DATA':
-      // TODO: Implement data retrieval logic
-      return { success: true, data: { id: '${config.id}', timestamp: Date.now(), status: 'success' } };
+  startMonitoring: () => {
+    if (${toCamelCase(config.id)}Plugin.monitoringInterval) {
+      clearInterval(${toCamelCase(config.id)}Plugin.monitoringInterval);
+    }
+    
+    const intervalMs = (${toCamelCase(config.id)}Plugin.settings.refreshInterval || 30) * 1000;
+    ${toCamelCase(config.id)}Plugin.monitoringInterval = setInterval(() => {
+      ${toCamelCase(config.id)}Plugin.performMonitoring();
+    }, intervalMs);
+    
+    ${toCamelCase(config.id)}Plugin.log('info', \`Monitoring started (interval: \${intervalMs}ms)\`);
+  },
+  
+  stopMonitoring: () => {
+    if (${toCamelCase(config.id)}Plugin.monitoringInterval) {
+      clearInterval(${toCamelCase(config.id)}Plugin.monitoringInterval);
+      ${toCamelCase(config.id)}Plugin.monitoringInterval = null;
+      ${toCamelCase(config.id)}Plugin.log('info', 'Monitoring stopped');
+    }
+  },
+  
+  performMonitoring: async () => {
+    try {
+      // TODO: Implement your monitoring logic here
+      ${toCamelCase(config.id)}Plugin.log('debug', 'Performing monitoring check');
       
-    case 'EXECUTE_ACTION':
-      // TODO: Implement main action logic
-      return { success: true, message: '${config.name} action executed successfully' };
+      // Example: Check API status
+      const response = await fetch(${toCamelCase(config.id)}Plugin.settings.apiEndpoint + '/health');
+      const data = await response.json();
       
-    case 'UPDATE_SETTINGS':
-      // TODO: Implement settings update logic
-      return { success: true, message: 'Settings updated successfully' };
+      ${toCamelCase(config.id)}Plugin.log('info', 'Monitoring check completed', data);
+    } catch (error) {
+      ${toCamelCase(config.id)}Plugin.log('error', 'Monitoring check failed', error);
+    }
+  }` : ''}${config.category === 'injection' ? `,
+
+  // Injection-specific methods
+  injectionListeners: [],
+  
+  setupInjectionListeners: () => {
+    // TODO: Set up tab listeners for automatic injection
+    ${toCamelCase(config.id)}Plugin.log('info', 'Setting up injection listeners');
+    
+    // Example: Listen for tab updates
+    const listener = (tabId, changeInfo, tab) => {
+      if (changeInfo.status === 'complete' && tab.url) {
+        ${toCamelCase(config.id)}Plugin.checkAndInject(tab);
+      }
+    };
+    
+    if (chrome.tabs && chrome.tabs.onUpdated) {
+      chrome.tabs.onUpdated.addListener(listener);
+      ${toCamelCase(config.id)}Plugin.injectionListeners.push(listener);
+    }
+  },
+  
+  removeInjectionListeners: () => {
+    ${toCamelCase(config.id)}Plugin.injectionListeners.forEach(listener => {
+      if (chrome.tabs && chrome.tabs.onUpdated) {
+        chrome.tabs.onUpdated.removeListener(listener);
+      }
+    });
+    ${toCamelCase(config.id)}Plugin.injectionListeners = [];
+    ${toCamelCase(config.id)}Plugin.log('info', 'Injection listeners removed');
+  },
+  
+  checkAndInject: async (tab) => {
+    try {
+      const targetDomains = ${toCamelCase(config.id)}Plugin.settings.targetDomains || ['*'];
+      const url = new URL(tab.url);
       
-    default:
-      console.warn('${config.name} Plugin: Unknown action:', action);
-      return { success: false, error: 'Unknown action' };
-  }
+      // Check if domain matches target domains
+      const shouldInject = targetDomains.some(domain => 
+        domain === '*' || url.hostname.includes(domain)
+      );
+      
+      if (shouldInject) {
+        ${toCamelCase(config.id)}Plugin.log('info', \`Injecting into tab: \${tab.url}\`);
+        await ${toCamelCase(config.id)}Plugin.performInjection(tab.id);
+      }
+    } catch (error) {
+      ${toCamelCase(config.id)}Plugin.log('error', 'Injection check failed', error);
+    }
+  },
+  
+  performInjection: async (tabId) => {
+    try {
+      // TODO: Implement your injection logic here
+      const script = \`
+        console.log('${config.name} Plugin: Script injected');
+        // Add your injection code here
+      \`;
+      
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: new Function(script)
+      });
+      
+      ${toCamelCase(config.id)}Plugin.log('info', \`Script injected into tab \${tabId}\`);
+    } catch (error) {
+      ${toCamelCase(config.id)}Plugin.log('error', 'Script injection failed', error);
+    }
+  }` : ''}
 };
 
-export default ${toCamelCase(config.id)}Plugin;
-`;
+export default ${toCamelCase(config.id)}Plugin;`;
 }
 
 function generateReadmeFile(config) {
-  const pascalName = toPascalCase(config.id);
-  
   return `# ${config.name} Plugin
 
 ${config.description}
@@ -627,63 +513,97 @@ This plugin provides ${config.name.toLowerCase()} functionality for the Datadog 
 
 ## Features
 
-- 🔧 **Feature 1**: Description of feature 1
-- 📊 **Feature 2**: Description of feature 2  
-- 🚀 **Feature 3**: Description of feature 3
-
-## Installation
-
-This plugin is ${config.isCore ? 'automatically installed and enabled' : 'available in the plugin directory'} as part of the Datadog Sales Engineering Toolkit.
+- 🔧 **Feature 1**: TODO - Describe your main feature
+- 📊 **Feature 2**: TODO - Describe another feature  
+- 🚀 **Feature 3**: TODO - Describe additional features
 
 ## Configuration
 
-### Settings
+### Settings Schema
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| enabled | boolean | ${!config.isCore} | ${config.isCore ? 'Always enabled (core plugin)' : 'Enable or disable the plugin'} |
-${config.category === 'monitoring' ? '| refreshInterval | number | 30 | How often to refresh data (5-300 seconds) |' : ''}
-${config.category === 'injection' ? '| autoInject | boolean | false | Automatically inject scripts when pages load |' : ''}
+This plugin supports the following configuration options:
+
+\`\`\`javascript
+{
+  ${!config.isCore ? `"enabled": {
+    "type": "boolean",
+    "title": "Enable Plugin",
+    "description": "Enable or disable the ${config.name} plugin",
+    "default": false
+  },` : ''}
+  ${config.category === 'monitoring' ? `"refreshInterval": {
+    "type": "number", 
+    "title": "Refresh Interval (seconds)",
+    "description": "How often to refresh data",
+    "default": 30,
+    "minimum": 5,
+    "maximum": 300
+  },
+  "autoRefresh": {
+    "type": "boolean",
+    "title": "Auto Refresh", 
+    "description": "Automatically refresh data",
+    "default": true
+  },` : ''}
+  ${config.category === 'injection' ? `"autoInject": {
+    "type": "boolean",
+    "title": "Auto Inject",
+    "description": "Automatically inject scripts when pages load", 
+    "default": false
+  },
+  "targetDomains": {
+    "type": "array",
+    "title": "Target Domains",
+    "description": "Domains to inject scripts into",
+    "items": { "type": "string" },
+    "default": ["*"]
+  },` : ''}
+  "apiEndpoint": {
+    "type": "string",
+    "title": "API Endpoint",
+    "description": "Custom API endpoint URL",
+    "default": "https://api.datadoghq.com"
+  },
+  "debugMode": {
+    "type": "boolean",
+    "title": "Debug Mode", 
+    "description": "Enable debug logging",
+    "default": false
+  }
+}
+\`\`\`
 
 ### Permissions
 
-This plugin requires the following permissions:
+This plugin requires the following Chrome extension permissions:
 
 ${config.permissions.filter(p => p.trim()).map(p => `- \`${p}\``).join('\n')}
 
 ## Usage
 
-### Basic Usage
+### Installation
 
-1. ${config.isCore ? 'The plugin is automatically enabled' : 'Enable the plugin in the Options page'}
-2. Configure settings as needed
-3. Use the plugin interface to interact with features
+This plugin is ${config.isCore ? 'automatically installed and enabled' : 'available in the plugin directory'} as part of the Datadog Sales Engineering Toolkit.
 
-### Advanced Usage
+### Configuration
 
-Add detailed usage instructions here.
+1. ${config.isCore ? 'The plugin is automatically enabled (core plugin)' : 'Enable the plugin in the Options page under Plugins'}
+2. Configure settings by clicking the "Configure" button
+3. Adjust settings according to your needs
+4. Save configuration
 
-## API Reference
-
-### Plugin Messages
+### API Messages
 
 The plugin responds to the following message types:
 
-#### GET_DATA
-Get current plugin data.
+#### GET_STATUS
+Get current plugin status and settings.
 
 \`\`\`javascript
 chrome.runtime.sendMessage({
-  type: '${config.id.toUpperCase().replace(/-/g, '_')}_GET_DATA'
-});
-\`\`\`
-
-#### EXECUTE_ACTION
-Execute the main plugin action.
-
-\`\`\`javascript
-chrome.runtime.sendMessage({
-  type: '${config.id.toUpperCase().replace(/-/g, '_')}_EXECUTE_ACTION'
+  type: 'PLUGIN_MESSAGE',
+  pluginId: '${config.id}',
+  action: 'GET_STATUS'
 });
 \`\`\`
 
@@ -692,27 +612,37 @@ Update plugin settings.
 
 \`\`\`javascript
 chrome.runtime.sendMessage({
-  type: '${config.id.toUpperCase().replace(/-/g, '_')}_UPDATE_SETTINGS',
-  settings: { enabled: true }
+  type: 'PLUGIN_MESSAGE', 
+  pluginId: '${config.id}',
+  action: 'UPDATE_SETTINGS',
+  payload: { 
+    ${config.category === 'monitoring' ? 'refreshInterval: 60,' : ''}
+    ${config.category === 'injection' ? 'autoInject: true,' : ''}
+    debugMode: true 
+  }
 });
 \`\`\`
 
-### TypeScript Interfaces
+#### EXECUTE_ACTION
+Execute the main plugin action.
 
-\`\`\`typescript
-interface ${pascalName}Settings {
-  enabled: boolean;
-  ${config.category === 'monitoring' ? 'refreshInterval: number;' : ''}
-  ${config.category === 'injection' ? 'autoInject: boolean;' : ''}
-}
+\`\`\`javascript
+chrome.runtime.sendMessage({
+  type: 'PLUGIN_MESSAGE',
+  pluginId: '${config.id}', 
+  action: 'EXECUTE_ACTION'
+});
+\`\`\`
 
-interface ${pascalName}Data {
-  id: string;
-  timestamp: number;
-  status: 'success' | 'error' | 'pending';
-  message?: string;
-  data?: any;
-}
+#### GET_DATA
+Retrieve plugin data.
+
+\`\`\`javascript
+chrome.runtime.sendMessage({
+  type: 'PLUGIN_MESSAGE',
+  pluginId: '${config.id}',
+  action: 'GET_DATA'
+});
 \`\`\`
 
 ## Development
@@ -721,56 +651,90 @@ interface ${pascalName}Data {
 
 \`\`\`
 src/plugins/${config.id}/
-├── manifest.json    # Plugin metadata and settings schema
-├── types.ts         # TypeScript interfaces and types
-├── config.ts        # Configuration and utility functions
-├── component.tsx    # React UI component
-├── index.ts         # Plugin entry point and registration
+├── index.js         # Main plugin implementation
 └── README.md        # This documentation
 \`\`\`
+
+### Plugin Architecture
+
+This plugin follows the standard plugin architecture:
+
+1. **Manifest**: Defines plugin metadata, permissions, and configuration schema
+2. **Lifecycle Methods**: \`initialize()\`, \`cleanup()\`, \`handleMessage()\`
+3. **Settings Management**: Dynamic configuration with validation
+4. **Logging**: Structured logging with debug levels
+${config.category === 'monitoring' ? '5. **Monitoring**: Automatic monitoring with configurable intervals' : ''}
+${config.category === 'injection' ? '5. **Injection**: Automatic script injection with domain targeting' : ''}
 
 ### Testing
 
 1. Build the extension: \`npm run build\`
 2. Load the extension in Chrome developer mode
-3. Test plugin functionality in the options page
-4. Verify messages are handled correctly in background script
+3. Open the options page and navigate to Plugins
+4. ${config.isCore ? 'The plugin should be automatically enabled' : 'Enable the plugin and configure settings'}
+5. Test functionality in browser console
 
 ### Debugging
 
-- Check browser console for error messages
+- Enable debug mode in plugin settings for verbose logging
+- Check browser console for plugin messages
 - Use Chrome DevTools to inspect plugin state
-- Enable verbose logging in development mode
+- Monitor background script for message handling
 
-## Contributing
+## Customization
 
-When modifying this plugin:
+### Adding New Features
 
-1. Update TypeScript interfaces in \`types.ts\`
-2. Add utility functions to \`config.ts\`
-3. Update the React component in \`component.tsx\`
-4. Handle new message types in \`index.ts\`
-5. Update this README with new features
-6. Test thoroughly before submitting
+1. Add new message handlers in \`handleMessage()\`
+2. Update configuration schema in manifest
+3. Implement feature logic in helper methods
+4. Update this README with new functionality
+
+### Configuration Options
+
+Add new settings by extending the \`configSchema\` in the manifest:
+
+\`\`\`javascript
+configSchema: {
+  properties: {
+    newSetting: {
+      type: 'string',
+      title: 'New Setting',
+      description: 'Description of new setting',
+      default: 'default value'
+    }
+  }
+}
+\`\`\`
+
+### Message Handling
+
+Add new message types by extending the \`handleMessage()\` method:
+
+\`\`\`javascript
+case 'NEW_ACTION':
+  // Implement new action
+  return { success: true, result: 'action completed' };
+\`\`\`
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Plugin not loading**
-- Check browser console for errors
-- Verify all required permissions are granted
-- Ensure plugin is enabled in settings
+- Check browser console for JavaScript errors
+- Verify plugin is properly exported as default
+- Ensure manifest is valid
 
-**Data not updating**
-- Check network connectivity
-- Verify API credentials are valid
-- Check refresh interval settings
+**Configuration not saving**
+- Check storage permissions
+- Verify settings match schema format
+- Look for validation errors in console
 
-**Settings not saving**
-- Check browser storage permissions
-- Verify settings format is correct
-- Check for validation errors
+**Messages not handled**
+- Verify background script is receiving messages
+- Check plugin ID matches exactly
+- Ensure plugin is initialized
 
 ## License
 
@@ -780,7 +744,7 @@ This plugin is part of the Datadog Sales Engineering Toolkit and follows the sam
 
 // Main wizard function
 async function runWizard() {
-  log.title('🔌 Datadog Plugin Scaffold Generator');
+  log.title('🔌 Datadog Plugin Generator (JavaScript)');
   
   try {
     // Get plugin ID from command line or prompt
@@ -809,29 +773,56 @@ async function runWizard() {
     
     log.step('Collecting plugin information...');
     
+    // Show icon guidance
+    log.info('Icon Reference: Visit https://tabler.io/icons to browse all available icons');
+    log.info('Common icon suggestions:');
+    getIconSuggestions().forEach(suggestion => {
+      log.info(`  ${suggestion}`);
+    });
+    
     // Collect plugin details
     const config = {
       id: pluginId,
       name: await prompt('Plugin Name (e.g., "My Awesome Plugin"): '),
       description: await prompt('Plugin Description: '),
-      author: await prompt('Author (default: "Datadog Sales Engineering Team"): ') || 'Datadog Sales Engineering Team',
-      category: await prompt('Category (monitoring/injection/utility/core): ') || 'utility',
-      icon: await prompt('Icon (emoji, e.g., "🔧"): ') || '🔧',
+      category: await prompt('Category (monitoring/injection/utility): ') || 'utility',
+      icon: await prompt(`Icon name (PascalCase, e.g., "Eye", "Speedboat", default: "Puzzle"): `) || 'Puzzle',
       isCore: (await prompt('Is this a core plugin that cannot be disabled? (y/N): ')).toLowerCase() === 'y',
-      permissions: (await prompt('Chrome permissions (comma-separated, e.g., "activeTab,storage"): ') || '').split(',')
+      defaultEnabled: false,
+      permissions: (await prompt('Chrome permissions (comma-separated, e.g., "tabs,storage"): ') || 'storage').split(',')
     };
+    
+    // Validate icon against pre-imported icons
+    if (config.icon && !validateIcon(config.icon)) {
+      log.warning(`Icon "${config.icon}" not found in pre-imported icons.`);
+      log.warning(`It will fallback to "Puzzle". To add new icons, see PLUGIN_STANDARDS.md`);
+      log.info(`Available icons: Eye, Code, Bell, Settings, Database, Upload, Download, Shield, World, Chart, Cloud, Lock, Robot, Speedboat, and more.`);
+    }
+    
+    // Set default enabled for core plugins
+    if (config.isCore) {
+      config.defaultEnabled = true;
+    }
     
     log.step('Generating plugin files...');
     generatePluginFiles(config);
     
     log.success(`\n🎉 Plugin "${config.name}" generated successfully!`);
+    log.info(`\nPlugin Details:`);
+    log.info(`- ID: ${config.id}`);
+    log.info(`- Name: ${config.name}`);
+    log.info(`- Category: ${config.category}`);
+    log.info(`- Icon: ${config.icon}`);
+    log.info(`- Core Plugin: ${config.isCore ? 'Yes' : 'No'}`);
+    log.info(`- Permissions: ${config.permissions.join(', ')}`);
+    
     log.info(`\nNext steps:`);
     log.info(`1. cd src/plugins/${pluginId}`);
-    log.info(`2. Review and customize the generated files`);
-    log.info(`3. Implement your plugin logic in component.tsx and config.ts`);
-    log.info(`4. Add message handlers to the background script if needed`);
-    log.info(`5. Test your plugin with: npm run build`);
-    log.info(`\nSee CONTRIBUTING.md for detailed development guidelines.`);
+    log.info(`2. Review and customize the generated index.js file`);
+    log.info(`3. Implement your plugin logic in the appropriate methods`);
+    log.info(`4. Test your plugin with: npm run build`);
+    log.info(`5. Load the extension and test in Chrome`);
+    log.info(`\nSee PLUGIN_STANDARDS.md for detailed development guidelines.`);
     
   } catch (error) {
     log.error(`Failed to generate plugin: ${error.message}`);
@@ -848,4 +839,4 @@ if (!fs.existsSync('package.json') || !fs.existsSync('src/plugins')) {
 }
 
 // Run the wizard
-runWizard(); 
+runWizard();

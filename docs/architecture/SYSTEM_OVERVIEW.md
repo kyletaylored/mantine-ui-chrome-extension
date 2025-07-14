@@ -257,7 +257,7 @@ OptionsApp
 │   ├── CredentialsPage
 │   ├── PluginsPage
 │   ├── SettingsPage
-│   └── HelpfulLinksPage
+│   └── LinksPage
 └── Common Components
     ├── LoadingState
     ├── ErrorBoundary

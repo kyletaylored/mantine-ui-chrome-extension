@@ -28,15 +28,16 @@ import {
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
-import { getStorage } from '@/shared/storage';
+import { getStorage, setCredentials } from '@/shared/storage';
 import { createLogger } from '@/shared/logger';
+import { validateDatadogCredentials } from '@/shared/credential-validator';
 
-const debugLog = createLogger('OptionsApp');
+const logger = createLogger('OptionsApp');
 
 // Import page components
 import { DashboardPage } from '@/options/pages/DashboardPage';
 import { CredentialsPage } from '@/options/pages/CredentialsPage';
-import { HelpfulLinksPage } from '@/options/pages/HelpfulLinksPage';
+import { LinksPage } from '@/options/pages/LinksPage';
 import { PluginsPage } from '@/options/pages/PluginsPage';
 import { SettingsPage } from '@/options/pages/SettingsPage';
 
@@ -48,20 +49,20 @@ export function OptionsApp() {
   const location = useLocation();
 
   const loadData = async () => {
-    debugLog.debug('START', 'LOAD_DATA', {});
+    logger.debug('START', 'LOAD_DATA', {});
     try {
       const data = await getStorage();
-      debugLog.debug('RAW_DATA', 'LOAD_DATA', { data, hasCredentials: !!data?.credentials, hasPlugins: !!data?.plugins });
+      logger.debug('RAW_DATA', 'LOAD_DATA', { data, hasCredentials: !!data?.credentials, hasPlugins: !!data?.plugins });
       
       // Ensure data has the proper structure with defaults
       const normalizedData = {
         credentials: data?.credentials || {
           apiKey: '',
           appKey: '',
-          site: 'us1',
+          site: '',
           isValid: false
         },
-        helpfulLinks: data?.helpfulLinks || [],
+        links: data?.links || [],
         plugins: data?.plugins || [],
         settings: data?.settings || {
           theme: 'light',
@@ -72,10 +73,10 @@ export function OptionsApp() {
       };
       
       setStorageData(normalizedData);
-      debugLog.debug('SUCCESS', 'LOAD_DATA', { normalizedData });
+      logger.debug('SUCCESS', 'LOAD_DATA', { normalizedData });
     } catch (error) {
-      debugLog.debug('ERROR', 'LOAD_DATA', error);
-      console.error('Failed to load storage data:', error);
+      logger.debug('ERROR', 'LOAD_DATA', error);
+      logger.error('Failed to load storage data:', error);
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,7 @@ export function OptionsApp() {
 
   const refreshCredentials = async () => {
     if (!storageData?.credentials?.apiKey || !storageData?.credentials?.appKey) {
-      debugLog.debug('ERROR', 'REFRESH_CREDENTIALS', 'Missing credentials');
+      logger.debug('ERROR', 'REFRESH_CREDENTIALS', 'Missing credentials');
       notifications.show({
         title: 'No Credentials',
         message: 'Please enter your API credentials first.',
@@ -96,50 +97,44 @@ export function OptionsApp() {
       return;
     }
 
-    debugLog.debug('START', 'REFRESH_CREDENTIALS', { 
+    logger.debug('START', 'REFRESH_CREDENTIALS', { 
       apiKeyLength: storageData.credentials.apiKey.length,
       appKeyLength: storageData.credentials.appKey.length 
     });
     
     try {
-      // Use Chrome messaging to validate credentials
-      debugLog.debug('SENDING', 'REFRESH_CREDENTIALS', 'About to send message to background');
-      chrome.runtime.sendMessage({
-        type: 'VALIDATE_CREDENTIALS',
-        credentials: storageData.credentials
-      });
-      debugLog.debug('SENT', 'REFRESH_CREDENTIALS', 'Message sent');
+      // Validate credentials directly
+      logger.debug('VALIDATING', 'REFRESH_CREDENTIALS', 'Starting direct validation');
+      const validatedCredentials = await validateDatadogCredentials(storageData.credentials);
       
-      // Wait a moment for validation to complete, then refresh data
-      setTimeout(async () => {
-        debugLog.debug('CHECKING', 'REFRESH_CREDENTIALS', 'Checking storage for validation result');
+      if (validatedCredentials) {
+        // Update storage with validated credentials
+        await setCredentials(validatedCredentials);
         await loadData();
-        const updatedData = await getStorage();
         
-        debugLog.debug('RESULT', 'REFRESH_CREDENTIALS', { 
-          isValid: updatedData.credentials?.isValid,
-          site: updatedData.credentials?.site 
+        logger.debug('SUCCESS', 'REFRESH_CREDENTIALS', { 
+          isValid: validatedCredentials.isValid,
+          site: validatedCredentials.site 
         });
         
-        if (updatedData.credentials?.isValid) {
-          notifications.show({
-            title: 'Credentials Validated',
-            message: `Successfully connected to Datadog ${updatedData.credentials.site?.toUpperCase()}`,
-            color: 'green',
-            icon: <IconCheck size={16} />
-          });
-        } else {
-          notifications.show({
-            title: 'Validation Failed',
-            message: 'Unable to validate your Datadog credentials',
-            color: 'red',
-            icon: <IconX size={16} />
-          });
-        }
-      }, 2000);
+        notifications.show({
+          title: 'Credentials Validated',
+          message: `Successfully connected to Datadog ${validatedCredentials.site?.toUpperCase()}`,
+          color: 'green',
+          icon: <IconCheck size={16} />
+        });
+      } else {
+        logger.debug('FAILED', 'REFRESH_CREDENTIALS', 'Validation failed');
+        notifications.show({
+          title: 'Validation Failed',
+          message: 'Unable to validate your Datadog credentials',
+          color: 'red',
+          icon: <IconX size={16} />
+        });
+      }
       
     } catch (error) {
-      debugLog.debug('ERROR', 'REFRESH_CREDENTIALS', error);
+      logger.debug('ERROR', 'REFRESH_CREDENTIALS', error);
       notifications.show({
         title: 'Validation Error',
         message: 'Failed to validate credentials',
@@ -233,7 +228,7 @@ export function OptionsApp() {
             />
             <NavLink
               href="#"
-              label="Helpful Links"
+              label="Links"
               leftSection={<IconLink size={16} />}
               active={location.pathname === '/links'}
               onClick={(e) => {
@@ -301,7 +296,7 @@ export function OptionsApp() {
         <Routes>
           <Route path="/" element={<DashboardPage storageData={storageData} onRefresh={loadData} />} />
           <Route path="/credentials" element={<CredentialsPage storageData={storageData} onRefresh={loadData} />} />
-          <Route path="/links" element={<HelpfulLinksPage storageData={storageData} onRefresh={loadData} />} />
+          <Route path="/links" element={<LinksPage storageData={storageData} onRefresh={loadData} />} />
           <Route path="/plugins" element={<PluginsPage storageData={storageData} onRefresh={loadData} />} />
           <Route path="/settings" element={<SettingsPage storageData={storageData} onRefresh={loadData} />} />
         </Routes>

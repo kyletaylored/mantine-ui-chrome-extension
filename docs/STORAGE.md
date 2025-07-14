@@ -18,9 +18,9 @@ The Datadog Sales Engineering Toolkit uses a modern, type-safe storage system bu
 ```typescript
 interface ExtensionStorage {
   credentials: DatadogCredentials;    // Encrypted API keys
-  helpfulLinks: HelpfulLink[];       // User-defined helpful links
-  plugins: Plugin[];                 // Plugin configurations
-  settings: ExtensionSettings;       // User preferences
+  Links: Link[];                      // User-defined links
+  plugins: Plugin[];                  // Plugin configurations
+  settings: ExtensionSettings;        // User preferences
 }
 ```
 
@@ -123,19 +123,19 @@ Removes a plugin. Prevents removing core plugins.
 #### `storage.ensureCorePluginsEnabled(): Promise<void>`
 Ensures all core plugins are enabled.
 
-### Helpful Links Methods
+### Links Methods
 
-#### `storage.getHelpfulLinks(): Promise<HelpfulLink[]>`
-Returns all helpful links.
+#### `storage.getLinks(): Promise<Link[]>`
+Returns all links.
 
-#### `storage.addHelpfulLink(link: Omit<HelpfulLink, 'id' | 'createdAt' | 'updatedAt'>): Promise<HelpfulLink>`
-Adds a new helpful link with auto-generated ID and timestamps.
+#### `storage.addLink(link: Omit<Link, 'id' | 'createdAt' | 'updatedAt'>): Promise<Link>`
+Adds a new link with auto-generated ID and timestamps.
 
-#### `storage.updateHelpfulLink(id: string, updates: Partial<HelpfulLink>): Promise<void>`
-Updates a helpful link.
+#### `storage.updateLink(id: string, updates: Partial<Link>): Promise<void>`
+Updates a link.
 
-#### `storage.removeHelpfulLink(id: string): Promise<void>`
-Removes a helpful link.
+#### `storage.removeLink(id: string): Promise<void>`
+Removes a link.
 
 ### Settings Methods
 
@@ -153,8 +153,8 @@ Returns an observable that emits when credentials change.
 #### `storage.watchPlugins()`
 Returns an observable that emits when plugins change.
 
-#### `storage.watchHelpfulLinks()`
-Returns an observable that emits when helpful links change.
+#### `storage.watchLinks()`
+Returns an observable that emits when links change.
 
 #### `storage.watchSettings()`
 Returns an observable that emits when settings change.

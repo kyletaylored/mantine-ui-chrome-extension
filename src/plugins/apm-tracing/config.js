@@ -1,3 +1,13 @@
+// APM Plugin Configuration
+export const APM_PLUGIN_CONFIG = {
+  id: 'apm-tracing',
+  name: 'APM Tracing',
+  description: 'Monitor and display APM traces for performance analysis',
+  version: '1.0.0',
+  icon: 'Code',
+  permissions: ['webRequest']
+};
+
 // Default APM settings
 export const DEFAULT_APM_SETTINGS = {
   enabled: false,
