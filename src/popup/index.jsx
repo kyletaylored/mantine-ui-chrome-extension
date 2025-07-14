@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
-import { TabbedPopupApp } from './TabbedPopupApp';
+import { PopupApp } from './PopupApp';
 
 // Import Mantine styles
 import '@mantine/core/styles.css';
@@ -15,7 +15,7 @@ root.render(
   <StrictMode>
     <MantineProvider>
       <Notifications />
-      <TabbedPopupApp />
+      <PopupApp />
     </MantineProvider>
   </StrictMode>
 );

@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "Datadog Sales Engineering Toolkit v2.0",
   "version": "2.0.0",
+  "author": "Kyle Taylor <kyle.taylor@datadoghq.com>",
   "description": "Chrome Extension toolkit for Datadog Sales Engineers to enhance demonstrations and streamline access to resources",
   "permissions": [
     "storage",

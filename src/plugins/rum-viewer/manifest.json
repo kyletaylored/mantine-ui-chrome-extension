@@ -1,0 +1,70 @@
+{
+  "id": "rum-viewer",
+  "name": "RUM Viewer",
+  "description": "View Real User Monitoring session data from active pages with session replay links and user information",
+  "version": "1.0.0",
+  "author": "Datadog Sales Engineering Team",
+  "category": "monitoring",
+  "core": true,
+  "defaultEnabled": true,
+  "icon": "Eye",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "matches": [
+    "*://*/*"
+  ],
+  "contexts": {
+    "options": true,
+    "background": true,
+    "content": true,
+    "popup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "maxWaitTime": {
+        "type": "number",
+        "title": "Max Wait Time (ms)",
+        "description": "Maximum time to wait for DD_RUM to become available",
+        "default": 10000,
+        "minimum": 1000,
+        "maximum": 30000
+      },
+      "pollingInterval": {
+        "type": "number",
+        "title": "Polling Interval (ms)",
+        "description": "How often to check for DD_RUM availability",
+        "default": 100,
+        "minimum": 50,
+        "maximum": 1000
+      },
+      "autoRefresh": {
+        "type": "boolean",
+        "title": "Auto Refresh Data",
+        "description": "Automatically refresh RUM data when popup is opened",
+        "default": true
+      },
+      "showUserInfo": {
+        "type": "boolean",
+        "title": "Show User Information",
+        "description": "Display user information when available in RUM sessions",
+        "default": true
+      },
+      "showSessionReplay": {
+        "type": "boolean",
+        "title": "Show Session Replay Links",
+        "description": "Display session replay links when available",
+        "default": true
+      },
+      "enableLogging": {
+        "type": "boolean",
+        "title": "Enable Debug Logging",
+        "description": "Enable verbose logging for debugging RUM data collection",
+        "default": false
+      }
+    }
+  }
+}

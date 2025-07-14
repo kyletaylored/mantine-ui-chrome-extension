@@ -9,37 +9,66 @@ import {
   ActionIcon,
   Box,
   Alert,
-  Switch,
-  Anchor
+  Tabs,
+  Code,
+  ScrollArea,
+  TextInput,
+  Paper,
+  Tooltip,
+  LoadingOverlay,
+  Divider
 } from '@mantine/core';
 import {
   IconSettings,
   IconExternalLink,
   IconRefresh,
   IconAlertCircle,
-  IconCheck,
   IconX,
   IconEye,
+  IconActivity,
+  IconUser,
+  IconSearch,
+  IconLink,
+  IconClock,
+  IconGlobe,
+  IconPlayerPlay,
+  IconBell
 } from '@tabler/icons-react';
-import { storage, setCredentials } from '@/shared/storage';
-import { validateDatadogCredentials } from '@/shared/credential-validator';
-import { getActiveTab } from '@/shared/messages';
-import { createLogger } from '@/shared/logger';
+import { getStorage } from '../shared/storage';
+import { generateTraceUrl, formatTimestamp, getStatusColor, truncateUrl } from '../plugins/apm-tracing/config';
+import { sendMessage } from '../shared/messages';
+import { createLogger } from '../shared/logger';
 
-const logger = createLogger('PopupApp');
+/**
+ * @typedef {Object} RumSessionData
+ * @property {string} [sessionId]
+ * @property {string} [userId]
+ * @property {any} [userInfo]
+ * @property {string} [sessionReplayLink]
+ * @property {boolean} isActive
+ * @property {string} [error]
+ */
 
 export function PopupApp() {
   const [storageData, setStorageData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [validatingCredentials, setValidatingCredentials] = useState(false);
+  const [activeTab, setActiveTab] = useState('rum');
+  const [rumSessionData, setRumSessionData] = useState({ isActive: false });
+  const [apmTraces, setApmTraces] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshingRum, setRefreshingRum] = useState(false);
+  const [refreshingApm, setRefreshingApm] = useState(false);
+  const logger = createLogger('TabbedPopupApp');
 
   useEffect(() => {
     loadStorageData();
-  }, []);
+    loadRumSessionData();
+    loadApmTraces();
+  });
 
   const loadStorageData = async () => {
     try {
-      const data = await storage.get();
+      const data = await getStorage();
       setStorageData(data);
     } catch (error) {
       logger.error('Failed to load storage data:', error);
@@ -48,179 +77,345 @@ export function PopupApp() {
     }
   };
 
-  const validateCredentials = async () => {
-    if (!storageData?.credentials.apiKey) return;
-    
-    setValidatingCredentials(true);
+  const loadRumSessionData = async () => {
     try {
-      const validatedCredentials = await validateDatadogCredentials(storageData.credentials);
+      setRefreshingRum(true);
+      const response = await sendMessage('GET_RUM_SESSION_DATA');
       
-      if (validatedCredentials) {
-        await setCredentials(validatedCredentials);
-        await loadStorageData();
+      if (response.success) {
+        setRumSessionData(response.data);
+      } else {
+        setRumSessionData({ isActive: false, error: response.error });
       }
     } catch (error) {
-      logger.error('Failed to validate credentials:', error);
+      setRumSessionData({ isActive: false, error: 'Failed to load RUM session data' });
     } finally {
-      setValidatingCredentials(false);
+      setRefreshingRum(false);
     }
   };
 
-  const togglePlugin = async (pluginId) => {
-    if (!storageData) return;
-    
-    const plugins = storageData.plugins.map(plugin => 
-      plugin.id === pluginId ? { ...plugin, enabled: !plugin.enabled } : plugin
-    );
-    
-    await storage.update({ plugins });
-    await loadStorageData();
+  const loadApmTraces = async () => {
+    try {
+      setRefreshingApm(true);
+      const response = await sendMessage('GET_APM_TRACES', { filter: 'all' });
+      
+      if (response.success) {
+        setApmTraces(response.traces || []);
+      }
+    } catch (error) {
+      logger.error('Failed to load APM traces:', error);
+    } finally {
+      setRefreshingApm(false);
+    }
   };
 
   const openOptionsPage = () => {
     chrome.runtime.openOptionsPage();
   };
 
-  const openDatadogApp = () => {
+  const openTraceInDatadog = (traceId) => {
     const site = storageData?.credentials.site || 'us1';
-    const url = `https://app.datadoghq.${site === 'us1' ? 'com' : site}`;
-    chrome.tabs.create({ url });
+    const traceUrl = generateTraceUrl(traceId, site);
+    chrome.tabs.create({ url: traceUrl });
   };
+
+  const openSessionReplay = () => {
+    if (rumSessionData.sessionReplayLink) {
+      chrome.tabs.create({ url: rumSessionData.sessionReplayLink });
+    }
+  };
+
+  const filteredLinks = storageData?.links?.filter(link =>
+    link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    link.url.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   if (loading) {
     return (
-      <Box p="md">
-        <Text>Loading...</Text>
+      <Box p="md" w={400} h={500}>
+        <LoadingOverlay visible />
       </Box>
     );
   }
 
-  const { credentials, plugins = [], links = [] } = storageData || {};
-
   return (
-    <Stack gap="sm" p="md">
+    <Box w={400} h={500}>
       {/* Header */}
-      <Group justify="space-between" mb="xs">
-        <Text size="lg" fw={600}>Datadog Toolkit</Text>
-        <ActionIcon variant="subtle" onClick={openOptionsPage}>
-          <IconSettings size={16} />
-        </ActionIcon>
-      </Group>
-
-      {/* Credentials Status */}
-      <Card withBorder>
+      <Paper p="sm" withBorder>
         <Group justify="space-between" align="center">
-          <Group>
-            <Badge
-              color={credentials?.isValid ? 'green' : 'red'}
-              variant="light"
-              leftSection={credentials?.isValid ? <IconCheck size={12} /> : <IconX size={12} />}
-            >
-              {credentials?.isValid ? 'Connected' : 'Disconnected'}
-            </Badge>
-            <Text size="sm" c="dimmed">
-              {credentials?.site?.toUpperCase() || 'No site'}
-            </Text>
+          <Group gap="sm">
+            <Box w={20} h={20} style={{ backgroundColor: '#632ca6', borderRadius: '4px' }}>
+              <Text c="white" ta="center" size="xs" fw={700}>DD</Text>
+            </Box>
+            <Text fw={600} size="sm">Sales Engineer Toolkit</Text>
           </Group>
-          <ActionIcon
-            variant="subtle"
-            onClick={validateCredentials}
-            loading={validatingCredentials}
-          >
-            <IconRefresh size={16} />
-          </ActionIcon>
+          <Tooltip label="Settings">
+            <ActionIcon variant="subtle" onClick={openOptionsPage}>
+              <IconSettings size={16} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
-      </Card>
+      </Paper>
 
-      {/* Quick Actions */}
-      <Card withBorder>
-        <Text size="sm" fw={500} mb="xs">Quick Actions</Text>
-        <Stack gap="xs">
-          <Button
-            variant="light"
-            leftSection={<IconExternalLink size={16} />}
-            onClick={openDatadogApp}
-            fullWidth
-          >
-            Open Datadog App
-          </Button>
-          <Button
-            variant="light"
-            leftSection={<IconEye size={16} />}
-            onClick={() => getActiveTab()}
-            fullWidth
-          >
-            Inspect Current Page
-          </Button>
-        </Stack>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onChange={setActiveTab} variant="default">
+        <Tabs.List>
+          <Tabs.Tab value="rum" leftSection={<IconUser size={16} />} flex={1}>
+            RUM Session
+          </Tabs.Tab>
+          <Tabs.Tab value="apm" leftSection={<IconActivity size={16} />} flex={1}>
+            APM Traces
+          </Tabs.Tab>
+          <Tabs.Tab value="events" leftSection={<IconBell size={16} />} flex={1}>
+            Event Alerts
+          </Tabs.Tab>
+          <Tabs.Tab value="utilities" leftSection={<IconLink size={16} />} flex={1}>
+            Utilities
+          </Tabs.Tab>
+        </Tabs.List>
 
-      {/* Plugin Status */}
-      {plugins.length > 0 && (
-        <Card withBorder>
-          <Text size="sm" fw={500} mb="xs">Plugins</Text>
-          <Stack gap="xs">
-            {plugins.map(plugin => (
-              <Group key={plugin.id} justify="space-between">
-                <Group>
-                  <Badge variant="light" size="sm">
-                    {plugin.name}
+        {/* RUM Session Tab */}
+        <Tabs.Panel value="rum" pt="sm">
+          <ScrollArea h={400} p="sm">
+            <Stack gap="md">
+              <Group justify="space-between">
+                <Text fw={500}>RUM Session Data</Text>
+                <ActionIcon 
+                  variant="subtle" 
+                  onClick={loadRumSessionData}
+                  loading={refreshingRum}
+                >
+                  <IconRefresh size={16} />
+                </ActionIcon>
+              </Group>
+
+              {rumSessionData.error ? (
+                <Alert color="red" icon={<IconX />}>
+                  {rumSessionData.error}
+                </Alert>
+              ) : !rumSessionData.isActive ? (
+                <Alert color="gray" icon={<IconAlertCircle />}>
+                  No active RUM session found. RUM must be active on the current page.
+                </Alert>
+              ) : (
+                <Stack gap="sm">
+                  <Card withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={500} size="sm">Session Status</Text>
+                        <Badge color="green" size="sm">Active</Badge>
+                      </Group>
+                      
+                      {rumSessionData.sessionId && (
+                        <Group gap="xs">
+                          <Text size="xs" c="dimmed">Session ID:</Text>
+                          <Code>{rumSessionData.sessionId}</Code>
+                        </Group>
+                      )}
+                      
+                      {rumSessionData.userId && (
+                        <Group gap="xs">
+                          <Text size="xs" c="dimmed">User ID:</Text>
+                          <Code>{rumSessionData.userId}</Code>
+                        </Group>
+                      )}
+                    </Stack>
+                  </Card>
+
+                  {rumSessionData.userInfo && (
+                    <Card withBorder p="sm">
+                      <Stack gap="xs">
+                        <Text fw={500} size="sm">User Information</Text>
+                        <Code block>
+                          {JSON.stringify(rumSessionData.userInfo, null, 2)}
+                        </Code>
+                      </Stack>
+                    </Card>
+                  )}
+
+                  {rumSessionData.sessionReplayLink && (
+                    <Button
+                      leftSection={<IconPlayerPlay size={16} />}
+                      onClick={openSessionReplay}
+                      color="violet"
+                      fullWidth
+                    >
+                      Open Session Replay
+                    </Button>
+                  )}
+                </Stack>
+              )}
+            </Stack>
+          </ScrollArea>
+        </Tabs.Panel>
+
+        {/* APM Traces Tab */}
+        <Tabs.Panel value="apm" pt="sm">
+          <ScrollArea h={400} p="sm">
+            <Stack gap="md">
+              <Group justify="space-between">
+                <Text fw={500}>Recent APM Traces</Text>
+                <Group gap="xs">
+                  <Badge variant="outline" size="sm">
+                    {apmTraces.length} traces
                   </Badge>
-                  <Text size="xs" c="dimmed">
-                    {plugin.version}
-                  </Text>
+                  <ActionIcon 
+                    variant="subtle" 
+                    onClick={loadApmTraces}
+                    loading={refreshingApm}
+                  >
+                    <IconRefresh size={16} />
+                  </ActionIcon>
                 </Group>
-                <Switch
-                  checked={plugin.enabled}
-                  onChange={() => togglePlugin(plugin.id)}
+              </Group>
+
+              {apmTraces.length === 0 ? (
+                <Alert color="gray" icon={<IconAlertCircle />}>
+                  No APM traces found. Network requests with Datadog trace headers will appear here.
+                </Alert>
+              ) : (
+                <Stack gap="xs">
+                  {apmTraces.slice(0, 10).map((trace) => (
+                    <Card key={trace.id} withBorder p="xs">
+                      <Stack gap="xs">
+                        <Group justify="space-between" align="flex-start">
+                          <Stack gap={2} flex={1}>
+                            <Group gap="xs">
+                              <Badge
+                                color={getStatusColor(trace.status)}
+                                size="xs"
+                                variant="light"
+                              >
+                                {trace.method} {trace.status}
+                              </Badge>
+                              <Text size="xs" fw={500}>
+                                {truncateUrl(trace.url, 30)}
+                              </Text>
+                            </Group>
+                            
+                            <Group gap="xs" c="dimmed">
+                              <IconGlobe size={12} />
+                              <Text size="xs">{trace.domain}</Text>
+                              <IconClock size={12} />
+                              <Text size="xs">{formatTimestamp(trace.timestamp)}</Text>
+                            </Group>
+                          </Stack>
+                          
+                          <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => openTraceInDatadog(trace.traceId)}
+                          >
+                            <IconExternalLink size={12} />
+                          </ActionIcon>
+                        </Group>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </ScrollArea>
+        </Tabs.Panel>
+
+        {/* Event Alerts Tab */}
+        <Tabs.Panel value="events" pt="sm">
+          <ScrollArea h={400} p="sm">
+            <Stack gap="md">
+              <Alert color="blue" icon={<IconBell />}>
+                Event Alerts functionality requires configuration in the Options page. Monitor Datadog events and receive real-time notifications.
+              </Alert>
+              
+              <Button
+                variant="light"
+                leftSection={<IconSettings size={16} />}
+                onClick={openOptionsPage}
+                fullWidth
+              >
+                Configure Event Alerts
+              </Button>
+            </Stack>
+          </ScrollArea>
+        </Tabs.Panel>
+
+        {/* Utilities Tab */}
+        <Tabs.Panel value="utilities" pt="sm">
+          <ScrollArea h={400} p="sm">
+            <Stack gap="md">
+              <Stack gap="sm">
+                <Text fw={500}>Quick Search</Text>
+                <TextInput
+                  placeholder="Search links..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  leftSection={<IconSearch size={16} />}
                   size="sm"
                 />
-              </Group>
-            ))}
-          </Stack>
-        </Card>
-      )}
+              </Stack>
 
-      {/* Links */}
-      {links.length > 0 && (
-        <Card withBorder>
-          <Text size="sm" fw={500} mb="xs">Quick Links</Text>
-          <Stack gap="xs">
-            {links.slice(0, 3).map(link => (
-              <Anchor
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                size="sm"
-                style={{ textDecoration: 'none' }}
-              >
-                {link.title}
-              </Anchor>
-            ))}
-            {links.length > 3 && (
-              <Text size="xs" c="dimmed">
-                +{links.length - 3} more in options
-              </Text>
-            )}
-          </Stack>
-        </Card>
-      )}
+              <Stack gap="sm">
+                <Text fw={500}>Links</Text>
+                {filteredLinks.length === 0 ? (
+                  <Alert color="gray" icon={<IconAlertCircle />}>
+                    {searchQuery ? 'No links match your search.' : 'No links configured.'}
+                  </Alert>
+                ) : (
+                  <Stack gap="xs">
+                    {filteredLinks.slice(0, 8).map((link) => (
+                      <Card key={link.id} withBorder p="xs">
+                        <Group justify="space-between" align="center">
+                          <Stack gap={2} flex={1}>
+                            <Text size="sm" fw={500}>{link.title}</Text>
+                            {link.description && (
+                              <Text size="xs" c="dimmed">{link.description}</Text>
+                            )}
+                          </Stack>
+                          <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => chrome.tabs.create({ url: link.url })}
+                          >
+                            <IconExternalLink size={12} />
+                          </ActionIcon>
+                        </Group>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
 
-      {/* Warning if not configured */}
-      {!credentials?.apiKey && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="yellow"
-          variant="light"
-        >
-          <Text size="sm">
-            Configure your Datadog credentials in{' '}
-            <Anchor onClick={openOptionsPage} style={{ cursor: 'pointer' }}>
-              settings
-            </Anchor>
-          </Text>
-        </Alert>
-      )}
-    </Stack>
+              <Divider />
+
+              <Stack gap="sm">
+                <Text fw={500}>Quick Actions</Text>
+                <Button
+                  variant="light"
+                  leftSection={<IconEye size={16} />}
+                  onClick={() => sendMessage('GET_ACTIVE_TAB')}
+                  size="sm"
+                  fullWidth
+                >
+                  Inspect Current Page
+                </Button>
+                
+                <Button
+                  variant="light"
+                  leftSection={<IconExternalLink size={16} />}
+                  onClick={() => {
+                    const site = storageData?.credentials.site || 'us1';
+                    const url = site === 'us1' ? 'https://app.datadoghq.com' : `https://app.datadoghq.${site}`;
+                    chrome.tabs.create({ url });
+                  }}
+                  size="sm"
+                  fullWidth
+                >
+                  Open Datadog App
+                </Button>
+              </Stack>
+            </Stack>
+          </ScrollArea>
+        </Tabs.Panel>
+      </Tabs>
+    </Box>
   );
 }

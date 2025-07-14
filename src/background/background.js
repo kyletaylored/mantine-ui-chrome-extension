@@ -80,42 +80,6 @@ messageStreams.clearApmTraces.subscribe(async () => {
   return { success: true };
 });
 
-// Content script messages
-messageStreams.getPageInfo.subscribe(async ([payload]) => {
-  logger.debug('PROCESSING', 'GET_PAGE_INFO', {});
-  const tab = await getActiveTab();
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => {
-      return {
-        hasDatadog: {
-          rum: !!window.DD_RUM,
-          logs: !!window.DD_LOGS,
-          apm: !!window.DD_TRACE
-        },
-        performance: performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null
-      };
-    }
-  });
-  return { success: true, data: results[0]?.result };
-});
-
-messageStreams.collectPerformanceData.subscribe(async ([payload]) => {
-  logger.debug('PROCESSING', 'COLLECT_PERFORMANCE_DATA', {});
-  const tab = await getActiveTab();
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => {
-      return {
-        timing: performance.timing || null,
-        navigation: performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null,
-        resources: performance.getEntriesByType ? performance.getEntriesByType('resource') : []
-      };
-    }
-  });
-  return { success: true, data: results[0]?.result };
-});
-
 messageStreams.injectScript.subscribe(async ([payload]) => {
   logger.debug('PROCESSING', 'INJECT_SCRIPT', { scriptLength: payload.script.length });
   const tab = await getActiveTab();
@@ -162,11 +126,7 @@ async function handlePluginMessage(pluginId, action, payload) {
     case 'INJECT_RUM':
       await injectRumScript(payload);
       break;
-      
-    case 'INJECT_APM':
-      await injectApmScript(payload);
-      break;
-      
+     
     case 'SEND_EVENT':
       await sendDatadogEvent(payload);
       break;
@@ -193,18 +153,6 @@ async function injectRumScript(config) {
   `;
   
   await injectScript(tab.id, rumScript);
-}
-
-async function injectApmScript(config) {
-  const tab = await getActiveTab();
-  const apmScript = `
-    (function() {
-      // APM tracing injection code
-      console.log('APM tracing injected with config:', ${JSON.stringify(config)});
-    })();
-  `;
-  
-  await injectScript(tab.id, apmScript);
 }
 
 async function sendDatadogEvent(eventData) {

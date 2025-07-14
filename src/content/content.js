@@ -32,16 +32,6 @@ async function handleMessage(request) {
         return { success: true };
       }
         
-      case 'GET_PAGE_INFO': {
-        const pageInfo = getPageInfo();
-        return { success: true, data: pageInfo };
-      }
-        
-      case 'HIGHLIGHT_ELEMENTS': {
-        highlightElements(request.selector);
-        return { success: true };
-      }
-        
       case 'GET_RUM_SESSION_DATA': {
         const rumData = getRumSessionData();
         return rumData;
@@ -68,46 +58,6 @@ function injectDatadogScript(script) {
   scriptElement.textContent = script;
   scriptElement.setAttribute('data-injected-by', 'datadog-toolkit');
   document.head.appendChild(scriptElement);
-}
-
-// Get page information
-function getPageInfo() {
-  return {
-    url: window.location.href,
-    title: document.title,
-    domain: window.location.hostname,
-    userAgent: navigator.userAgent,
-    timestamp: Date.now(),
-    hasDatadog: {
-      rum: typeof window.DD_RUM !== 'undefined',
-      logs: typeof window.DD_LOGS !== 'undefined'
-    }
-  };
-}
-
-// Highlight elements on page
-function highlightElements(selector) {
-  // Remove existing highlights
-  const existingHighlights = document.querySelectorAll('[data-datadog-highlight]');
-  existingHighlights.forEach(el => {
-    el.removeAttribute('data-datadog-highlight');
-    el.style.outline = '';
-  });
-  
-  // Add new highlights
-  const elements = document.querySelectorAll(selector);
-  elements.forEach(el => {
-    el.setAttribute('data-datadog-highlight', 'true');
-    el.style.outline = '2px solid #632CA6';
-  });
-  
-  // Auto-remove highlights after 5 seconds
-  setTimeout(() => {
-    elements.forEach(el => {
-      el.removeAttribute('data-datadog-highlight');
-      el.style.outline = '';
-    });
-  }, 5000);
 }
 
 // Get RUM session data

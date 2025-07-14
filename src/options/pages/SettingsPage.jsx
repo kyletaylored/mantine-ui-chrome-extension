@@ -11,7 +11,8 @@ import {
   Select,
   Divider,
   Alert,
-  LoadingOverlay
+  LoadingOverlay,
+  Anchor
 } from '@mantine/core';
 import {
   IconSettings,
@@ -22,7 +23,32 @@ import {
   IconSun,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { getStorage, updateStorage, clearStorage } from '@/shared/storage';
+import { updateStorage, clearStorage } from '@/shared/storage';
+import manifest from '@/manifest.json';
+
+// Helper function to parse author field (string or array)
+const parseAuthors = (author) => {
+  if (!author) return [];
+  
+  // Convert to array if it's a string
+  const authors = Array.isArray(author) ? author : [author];
+  
+  return authors.map(authorString => {
+    // Parse "Name <email>" format
+    const match = authorString.match(/^(.+?)\s*<(.+?)>$/);
+    if (match) {
+      return {
+        name: match[1].trim(),
+        email: match[2].trim()
+      };
+    }
+    // Fallback if format doesn't match
+    return {
+      name: authorString,
+      email: null
+    };
+  });
+};
 
 export function SettingsPage({ storageData, onRefresh }) {
   const [loading, setLoading] = useState(false);
@@ -221,15 +247,34 @@ export function SettingsPage({ storageData, onRefresh }) {
           <Stack gap="sm">
             <Group justify="space-between">
               <Text size="sm">Version:</Text>
-              <Text size="sm" c="dimmed">1.0.0</Text>
+              <Text size="sm" c="dimmed">{manifest.version}</Text>
             </Group>
             <Group justify="space-between">
               <Text size="sm">Manifest Version:</Text>
-              <Text size="sm" c="dimmed">3</Text>
+              <Text size="sm" c="dimmed">{manifest.manifest_version}</Text>
             </Group>
             <Group justify="space-between">
               <Text size="sm">Developer:</Text>
-              <Text size="sm" c="dimmed">Datadog Sales Engineering Team</Text>
+              <div>
+                {parseAuthors(manifest.author).map((author, index) => (
+                  <div key={index}>
+                    <Text size="sm" c="dimmed" component="span">
+                      {author.email && (
+                        <>
+                          {' '}
+                          <Anchor 
+                            href={`mailto:${author.email}`}
+                            size="sm"
+                            c="blue"
+                          >
+                            {author.name}
+                          </Anchor>
+                        </>
+                      )}
+                    </Text>
+                  </div>
+                ))}
+              </div>
             </Group>
           </Stack>
         </Card>

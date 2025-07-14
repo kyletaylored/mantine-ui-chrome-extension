@@ -1,5 +1,5 @@
 import { notify } from '@extend-chrome/notify';
-import { SecureExtensionStorage } from './storage';
+import { getPluginStorage } from './storage';
 import { sendNotificationButtonClicked } from './messages';
 
 /**
@@ -30,7 +30,7 @@ export class NotificationService {
   static instance;
   
   constructor() {
-    this.storage = SecureExtensionStorage.createPluginBucket('notifications');
+    this.storage = getPluginStorage('notifications');
     this.setupEventListeners();
   }
 

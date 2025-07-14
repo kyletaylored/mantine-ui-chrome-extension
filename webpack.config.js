@@ -68,6 +68,13 @@ module.exports = {
           from: 'public/icons',
           to: 'icons',
           noErrorOnMissing: true
+        },
+        {
+          from: 'src/plugins',
+          to: 'plugins',
+          globOptions: {
+            ignore: ['**/index.js', '**/component.jsx']
+          }
         }
       ]
     })
