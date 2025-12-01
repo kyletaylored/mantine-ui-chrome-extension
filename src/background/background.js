@@ -1,7 +1,7 @@
 import { getCredentials, setCredentials, isPluginEnabled, getPlugins, addPlugin, getStorage, getSettings } from '@/shared/storage';
 import { DATADOG_SITES } from '@/shared/values';
 import { createLogger } from '@/shared/logger';
-import { pluginLoader } from '@/shared/plugin-loader';
+import { pluginLoaderV2, PLUGIN_CONTEXTS } from '@/shared/plugin-loader-v2';
 import { contentScriptManager } from '@/shared/content-script-manager';
 import { messageStreams } from '@/shared/messages';
 import { validateDatadogCredentials } from '@/shared/credential-validator';
@@ -12,13 +12,13 @@ const logger = createLogger('Background');
 chrome.runtime.onInstalled.addListener(async () => {
   logger.info('Datadog Sales Engineering Toolkit installed');
   logger.debug('LIFECYCLE', 'EXTENSION_INSTALLED', {});
-  
+
   // Initialize storage with default values
   await getStorage();
-  
+
   // Initialize plugin system
   await initializePluginSystem();
-  
+
   logger.debug('LIFECYCLE', 'EXTENSION_READY', {});
 });
 
@@ -26,7 +26,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   logger.info('Datadog Sales Engineering Toolkit started');
   logger.debug('LIFECYCLE', 'EXTENSION_STARTUP', {});
-  
+
   // Auto-validate credentials if enabled
   const credentials = await getCredentials();
   const settings = await getSettings();
@@ -121,16 +121,16 @@ async function getActiveTab() {
 // Handle plugin messages
 async function handlePluginMessage(pluginId, action, payload) {
   logger.debug('PLUGIN_MESSAGE', pluginId, { action, payload });
-  
+
   switch (action) {
     case 'INJECT_RUM':
       await injectRumScript(payload);
       break;
-     
+
     case 'SEND_EVENT':
       await sendDatadogEvent(payload);
       break;
-      
+
     default:
       logger.warn('Unknown plugin action:', action);
   }
@@ -151,7 +151,7 @@ async function injectRumScript(config) {
       console.log('Datadog RUM initialized with config:', ${JSON.stringify(config)});
     })();
   `;
-  
+
   await injectScript(tab.id, rumScript);
 }
 
@@ -160,12 +160,12 @@ async function sendDatadogEvent(eventData) {
   if (!credentials.isValid) {
     throw new Error('Invalid credentials');
   }
-  
+
   const site = DATADOG_SITES.find(s => s.region === credentials.site);
   if (!site) {
     throw new Error('Invalid Datadog site');
   }
-  
+
   const response = await fetch(`${site.apiUrl}/api/v1/events`, {
     method: 'POST',
     headers: {
@@ -174,11 +174,11 @@ async function sendDatadogEvent(eventData) {
     },
     body: JSON.stringify(eventData)
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to send event: ${response.status}`);
   }
-  
+
   return await response.json();
 }
 
@@ -186,64 +186,72 @@ async function sendDatadogEvent(eventData) {
 async function initializePluginSystem() {
   try {
     logger.info('Initializing plugin system...');
-    
+
     // Initialize plugin loader
-    await pluginLoader.initialize();
-    
-    // Get all loaded plugins
-    const plugins = pluginLoader.getPlugins();
+    await pluginLoaderV2.initialize();
+
+    // Get all loaded plugins (manifests)
+    const plugins = pluginLoaderV2.getAllPlugins();
     logger.info(`Found ${plugins.length} plugins`);
-    
+
     // Initialize core plugins first
     for (const plugin of plugins) {
-      if (plugin.manifest.core) {
+      if (plugin.core) {
         try {
-          logger.info(`Initializing core plugin: ${plugin.manifest.name}`);
-          await pluginLoader.initializePlugin(plugin.manifest.id);
-          
+          logger.info(`Initializing core plugin: ${plugin.name}`);
+          const pluginModule = await pluginLoaderV2.loadPluginForContext(plugin.id, PLUGIN_CONTEXTS.BACKGROUND);
+
+          if (pluginModule && pluginModule.initialize) {
+            await pluginModule.initialize();
+          }
+
           // Ensure core plugin is in storage and enabled
-          const existingPlugin = await getPlugins().then(p => p.find(p => p.id === plugin.manifest.id));
+          const existingPlugin = await getPlugins().then(p => p.find(p => p.id === plugin.id));
           if (!existingPlugin) {
             // Add new plugin to storage
             await addPlugin({
-              id: plugin.manifest.id,
-              name: plugin.manifest.name,
-              description: plugin.manifest.description,
-              version: plugin.manifest.version,
+              id: plugin.id,
+              name: plugin.name,
+              description: plugin.description,
+              version: plugin.version,
               enabled: true,
               isCore: true,
-              icon: plugin.manifest.icon,
-              component: plugin.renderComponent,
+              icon: plugin.icon,
+              // component: plugin.renderComponent, // UI components not loaded in background
               settings: {},
-              permissions: plugin.manifest.permissions || [],
+              permissions: plugin.permissions || [],
               createdAt: Date.now(),
               updatedAt: Date.now()
             });
           }
         } catch (error) {
-          logger.error(`Failed to initialize core plugin ${plugin.manifest.id}:`, error);
+          logger.error(`Failed to initialize core plugin ${plugin.id}:`, error);
         }
       }
     }
-    
+
     // Initialize enabled optional plugins
     for (const plugin of plugins) {
-      if (!plugin.manifest.core) {
+      if (!plugin.core) {
         try {
-          const enabled = await isPluginEnabled(plugin.manifest.id);
+          const enabled = await isPluginEnabled(plugin.id);
           if (enabled) {
-            logger.info(`Initializing optional plugin: ${plugin.manifest.name}`);
-            await pluginLoader.initializePlugin(plugin.manifest.id);
+            logger.info(`Initializing optional plugin: ${plugin.name}`);
+            const pluginModule = await pluginLoaderV2.loadPluginForContext(plugin.id, PLUGIN_CONTEXTS.BACKGROUND);
+
+            if (pluginModule && pluginModule.initialize) {
+              await pluginModule.initialize();
+            }
           }
         } catch (error) {
-          logger.error(`Failed to initialize optional plugin ${plugin.manifest.id}:`, error);
+          logger.error(`Failed to initialize optional plugin ${plugin.id}:`, error);
         }
       }
     }
-    
+
     // Initialize content script manager
     await contentScriptManager.initialize();
-    
+
     logger.info('Plugin system initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize plugin system:', error);

@@ -41,17 +41,17 @@ const prompt = (question) => {
 // Validate icon exists in our pre-imported icon map
 function validateIcon(iconName) {
   if (!iconName) return false;
-  
+
   // Icons available in our pre-imported map
   const availableIcons = [
-    'Puzzle', 'Eye', 'Code', 'Bell', 'Settings', 'Database', 'Upload', 'Download', 
-    'Shield', 'World', 'Chart', 'Cloud', 'Lock', 'Robot', 'Speedboat', 'Activity', 
-    'AlertCircle', 'Archive', 'ArrowRight', 'BarChart', 'Book', 'Bug', 'Camera', 
-    'Check', 'Circle', 'Copy', 'Edit', 'File', 'Folder', 'Globe', 'Hash', 'Home', 
-    'Info', 'Mail', 'Menu', 'Notification', 'Package', 'Phone', 'Plus', 'Refresh', 
+    'Puzzle', 'Eye', 'Code', 'Bell', 'Settings', 'Database', 'Upload', 'Download',
+    'Shield', 'World', 'Chart', 'Cloud', 'Lock', 'Robot', 'Speedboat', 'Activity',
+    'AlertCircle', 'Archive', 'ArrowRight', 'BarChart', 'Book', 'Bug', 'Camera',
+    'Check', 'Circle', 'Copy', 'Edit', 'File', 'Folder', 'Globe', 'Hash', 'Home',
+    'Info', 'Mail', 'Menu', 'Notification', 'Package', 'Phone', 'Plus', 'Refresh',
     'Send', 'Server', 'Share', 'Terminal', 'Trash', 'Users', 'Wifi', 'X'
   ];
-  
+
   return availableIcons.includes(iconName);
 }
 
@@ -59,12 +59,12 @@ function validateIcon(iconName) {
 function getIconSuggestions() {
   return [
     'Eye - Monitoring, viewing, inspection',
-    'Code - Development, scripting, technical features', 
+    'Code - Development, scripting, technical features',
     'Bell - Notifications, alerts, monitoring',
     'Settings - Configuration, preferences',
     'Database - Data management, storage',
     'Upload - Data injection, importing',
-    'Download - Data extraction, exporting', 
+    'Download - Data extraction, exporting',
     'Shield - Security, protection features',
     'Speedboat - Fast operations, performance',
     'Robot - Automation, AI features',
@@ -86,7 +86,7 @@ function validatePluginId(id) {
 
 // Convert kebab-case to PascalCase
 function toPascalCase(str) {
-  return str.split('-').map(word => 
+  return str.split('-').map(word =>
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join('');
 }
@@ -100,7 +100,7 @@ function toCamelCase(str) {
 // Generate plugin files
 function generatePluginFiles(config) {
   const pluginDir = path.join('src', 'plugins', config.id);
-  
+
   // Create plugin directory
   if (!fs.existsSync(pluginDir)) {
     fs.mkdirSync(pluginDir, { recursive: true });
@@ -108,6 +108,11 @@ function generatePluginFiles(config) {
   } else {
     log.warning(`Plugin directory already exists: ${pluginDir}`);
   }
+
+  // Generate manifest.json
+  const manifestContent = generateManifestFile(config);
+  fs.writeFileSync(path.join(pluginDir, 'manifest.json'), manifestContent);
+  log.success('Generated manifest.json');
 
   // Generate index.js
   const indexContent = generateIndexFile(config);
@@ -118,6 +123,43 @@ function generatePluginFiles(config) {
   const readmeContent = generateReadmeFile(config);
   fs.writeFileSync(path.join(pluginDir, 'README.md'), readmeContent);
   log.success('Generated README.md');
+
+  // Generate content.js if needed
+  if (config.needsContentScript) {
+    const contentContent = generateContentFile(config);
+    fs.writeFileSync(path.join(pluginDir, 'content.js'), contentContent);
+    log.success('Generated content.js');
+  }
+}
+
+function generateManifestFile(config) {
+  const configSchema = generateConfigSchema(config);
+
+  // Transform configSchema properties to settings format for manifest
+  // (They are essentially the same, but we want to be explicit)
+  const settings = configSchema.properties;
+
+  const manifest = {
+    id: config.id,
+    name: config.name,
+    description: config.description,
+    version: '1.0.0',
+    author: 'Datadog Sales Engineering Team',
+    category: config.category,
+    icon: config.icon,
+    permissions: config.permissions.filter(p => p.trim()),
+    contexts: {
+      background: true,
+      content: config.needsContentScript,
+      options: true
+    },
+    matches: config.matches,
+    core: config.isCore,
+    defaultEnabled: config.isCore || config.defaultEnabled,
+    settings: settings
+  };
+
+  return JSON.stringify(manifest, null, 2);
 }
 
 function generateConfigSchema(config) {
@@ -193,24 +235,20 @@ function generateConfigSchema(config) {
 
 function generateIndexFile(config) {
   const pascalName = toPascalCase(config.id);
-  const configSchema = generateConfigSchema(config);
-  
+
   return `// ${config.name} Plugin - JavaScript implementation
 // ${config.description}
 
+import manifest from './manifest.json';
+
 const ${toCamelCase(config.id)}Plugin = {
   manifest: {
-    id: '${config.id}',
-    name: '${config.name}',
-    description: '${config.description}',
-    version: '1.0.0',
-    core: ${config.isCore},
-    defaultEnabled: ${config.isCore || config.defaultEnabled},
-    icon: '${config.icon}',
-    permissions: ${JSON.stringify(config.permissions.filter(p => p.trim()), null, 4)},
-    
-    // Configuration schema for dynamic form generation
-    configSchema: ${JSON.stringify(configSchema, null, 4)}
+    ...manifest,
+    // Ensure configSchema is available for the plugin loader
+    configSchema: {
+      type: 'object',
+      properties: manifest.settings
+    }
   },
 
   // Plugin state
@@ -502,6 +540,28 @@ const ${toCamelCase(config.id)}Plugin = {
 export default ${toCamelCase(config.id)}Plugin;`;
 }
 
+function generateContentFile(config) {
+  const pascalName = toPascalCase(config.id);
+
+  return `// ${config.name} Plugin - Content Script
+// ${config.description}
+
+import { createLogger } from '@/shared/logger';
+
+const logger = createLogger('${pascalName}Content');
+
+const ${toCamelCase(config.id)}Content = {
+  // Initialize content script
+  initialize: async () => {
+    logger.info('${config.name} content script initialized');
+    // Add your content script logic here
+  }
+};
+
+export default ${toCamelCase(config.id)}Content;
+`;
+}
+
 function generateReadmeFile(config) {
   return `# ${config.name} Plugin
 
@@ -745,22 +805,33 @@ This plugin is part of the Datadog Sales Engineering Toolkit and follows the sam
 // Main wizard function
 async function runWizard() {
   log.title('🔌 Datadog Plugin Generator (JavaScript)');
-  
+
   try {
-    // Get plugin ID from command line or prompt
-    let pluginId = process.argv[2];
-    
-    if (!pluginId) {
-      pluginId = await prompt('Plugin ID (kebab-case, e.g., "my-awesome-plugin"): ');
+    log.step('Collecting plugin information...');
+
+    // 1. Get Plugin Name first
+    const name = await prompt('Plugin Name (e.g., "My Awesome Plugin"): ');
+    if (!name.trim()) {
+      log.error('Plugin name is required');
+      process.exit(1);
     }
-    
+
+    // 2. Derive ID from name
+    const derivedId = name.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // 3. Confirm or override ID
+    let pluginId = await prompt(`Plugin ID [${derivedId}]: `);
+    pluginId = pluginId.trim() || derivedId;
+
     // Validate plugin ID
     const validationError = validatePluginId(pluginId);
     if (validationError) {
       log.error(validationError);
       process.exit(1);
     }
-    
+
     // Check if plugin already exists
     const pluginDir = path.join('src', 'plugins', pluginId);
     if (fs.existsSync(pluginDir)) {
@@ -770,43 +841,61 @@ async function runWizard() {
         process.exit(0);
       }
     }
-    
-    log.step('Collecting plugin information...');
-    
+
     // Show icon guidance
     log.info('Icon Reference: Visit https://tabler.io/icons to browse all available icons');
     log.info('Common icon suggestions:');
     getIconSuggestions().forEach(suggestion => {
       log.info(`  ${suggestion}`);
     });
-    
-    // Collect plugin details
+
+    // Collect remaining details
+    // Collect remaining details
+    const category = await prompt('Category (monitoring/injection/utility): ') || 'utility';
+
+    let needsContentScript = false;
+    let matches = [];
+
+    if (category === 'injection') {
+      needsContentScript = true;
+    } else {
+      const answer = await prompt('Does this plugin need a content script? (y/N): ');
+      needsContentScript = answer.toLowerCase() === 'y';
+    }
+
+    if (needsContentScript) {
+      const matchesInput = await prompt('Target URL patterns (comma-separated, default: <all_urls>): ');
+      matches = matchesInput ? matchesInput.split(',').map(m => m.trim()) : ['<all_urls>'];
+    }
+
     const config = {
       id: pluginId,
-      name: await prompt('Plugin Name (e.g., "My Awesome Plugin"): '),
+      name: name,
       description: await prompt('Plugin Description: '),
-      category: await prompt('Category (monitoring/injection/utility): ') || 'utility',
+      category: category,
+      needsContentScript: needsContentScript,
+      matches: matches,
       icon: await prompt(`Icon name (PascalCase, e.g., "Eye", "Speedboat", default: "Puzzle"): `) || 'Puzzle',
       isCore: (await prompt('Is this a core plugin that cannot be disabled? (y/N): ')).toLowerCase() === 'y',
       defaultEnabled: false,
       permissions: (await prompt('Chrome permissions (comma-separated, e.g., "tabs,storage"): ') || 'storage').split(',')
     };
-    
+
     // Validate icon against pre-imported icons
     if (config.icon && !validateIcon(config.icon)) {
       log.warning(`Icon "${config.icon}" not found in pre-imported icons.`);
       log.warning(`It will fallback to "Puzzle". To add new icons, see PLUGIN_STANDARDS.md`);
       log.info(`Available icons: Eye, Code, Bell, Settings, Database, Upload, Download, Shield, World, Chart, Cloud, Lock, Robot, Speedboat, and more.`);
     }
-    
+
     // Set default enabled for core plugins
     if (config.isCore) {
       config.defaultEnabled = true;
     }
-    
+
     log.step('Generating plugin files...');
     generatePluginFiles(config);
-    
+
     log.success(`\n🎉 Plugin "${config.name}" generated successfully!`);
     log.info(`\nPlugin Details:`);
     log.info(`- ID: ${config.id}`);
@@ -815,7 +904,7 @@ async function runWizard() {
     log.info(`- Icon: ${config.icon}`);
     log.info(`- Core Plugin: ${config.isCore ? 'Yes' : 'No'}`);
     log.info(`- Permissions: ${config.permissions.join(', ')}`);
-    
+
     log.info(`\nNext steps:`);
     log.info(`1. cd src/plugins/${pluginId}`);
     log.info(`2. Review and customize the generated index.js file`);
@@ -823,7 +912,7 @@ async function runWizard() {
     log.info(`4. Test your plugin with: npm run build`);
     log.info(`5. Load the extension and test in Chrome`);
     log.info(`\nSee PLUGIN_STANDARDS.md for detailed development guidelines.`);
-    
+
   } catch (error) {
     log.error(`Failed to generate plugin: ${error.message}`);
     process.exit(1);

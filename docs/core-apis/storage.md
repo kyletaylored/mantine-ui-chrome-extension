@@ -335,4 +335,9 @@ if (process.env.NODE_ENV === 'development') {
 
 The new storage system provides a robust, type-safe, and secure foundation for the Datadog Sales Engineering Toolkit. It combines modern Chrome extension storage patterns with enterprise-grade security features, making it both developer-friendly and production-ready.
 
-For questions or contributions, please refer to the main contributing guidelines in the repository root. 
+For questions or contributions, please refer to the main contributing guidelines in the repository root.
+
+## 🧭 Navigation
+
+| [< Previous: Notifications](./notifications.md) | [Next: Shared Messaging >](./shared-messaging.md) |
+| :--- | :--- | 

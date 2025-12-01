@@ -320,4 +320,9 @@ import { notificationService } from '@/shared/notifications';
 
 // The service automatically logs notification events in development mode
 console.log('Notification service initialized');
-``` 
+```
+
+## 🧭 Navigation
+
+| [< Previous: Messaging](./messages.md) | [Next: Storage >](./storage.md) |
+| :--- | :--- | 

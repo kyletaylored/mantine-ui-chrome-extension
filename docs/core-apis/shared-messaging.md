@@ -532,3 +532,8 @@ const testFromContent = async () => {
 5. **Storage Inspection**: Verify data persistence after message handling
 
 This comprehensive messaging system provides a robust foundation for plugin communication while maintaining type safety and error handling across all extension contexts.
+
+## 🧭 Navigation
+
+| [< Previous: Storage](./storage.md) | [Back to Index >](../index.md) |
+| :--- | :--- |

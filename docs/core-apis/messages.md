@@ -460,3 +460,8 @@ export const sendMyNewMessage = async (data: string, options?: any) => {
 ---
 
 This messaging system provides a robust, type-safe, and scalable foundation for inter-context communication in the Chrome extension. The centralized handler makes it easy to add new message types and maintain consistency across the application.
+
+## 🧭 Navigation
+
+| [< Back to Index](../index.md) | [Next: Notifications >](./notifications.md) |
+| :--- | :--- |

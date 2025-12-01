@@ -4,6 +4,7 @@
 
 This document outlines the comprehensive plugin architecture that separates concerns between different Chrome extension execution contexts while maintaining a clean, standardized structure.
 
+
 ## Plugin Structure
 
 ### Directory Layout
@@ -417,3 +418,8 @@ export default {
 4. **Developer Experience**: Clear interfaces and standards for plugin development
 5. **Security**: Proper isolation between contexts and permission scoping
 6. **Maintainability**: Modular structure makes debugging and updates easier
+
+## 🧭 Navigation
+
+| [< Back to Index](../index.md) | [Next: Plugin Generator >](./generator.md) |
+| :--- | :--- |
