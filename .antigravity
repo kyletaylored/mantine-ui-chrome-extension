@@ -1,0 +1,52 @@
+# Code Splitting Optimization
+
+## Dynamic Imports
+- Use React.lazy()
+- Implement Suspense
+- Split by route
+- Component-level splitting
+
+## Webpack Configuration
+- Configure chunk splitting
+- Use magic comments
+- Implement preloading
+- Configure bundle sizes
+
+## Optimization Strategies
+- Split vendor bundles
+- Lazy load heavy components
+- Preload critical chunks
+- Use service workers
+
+## Measurement
+- Analyze bundle size
+- Use Lighthouse
+- Monitor Core Web Vitals
+- Track loading performance
+
+
+# Testing React Components
+
+## React Testing Library
+- Test user behavior, not implementation
+- Use accessible queries
+- Avoid testing internal state
+- Test user interactions
+
+## Jest Configuration
+- Set up test environment
+- Configure coverage thresholds
+- Use snapshot testing sparingly
+- Mock external dependencies
+
+## Testing Patterns
+- AAA pattern (Arrange, Act, Assert)
+- Test edge cases
+- Mock API calls
+- Test async components
+
+## Best Practices
+- Keep tests simple
+- One assertion per test
+- Use beforeEach for setup
+- Test accessibility
