@@ -11,15 +11,18 @@ Welcome to the Datadog Sales Engineering Toolkit developer documentation! This d
 
 ### 🏗️ Architecture
 - **[System Overview](./architecture/SYSTEM_OVERVIEW.md)** - High-level architecture and design patterns
+- **[Plugin Architecture](./architecture/PLUGIN_ARCHITECTURE.md)** - 🆕 Plugin contexts, permissions, and structure
+- **[Plugin Loader Implementation](./architecture/PLUGIN_LOADER_IMPLEMENTATION.md)** - Implementation details and changes
 - **[Storage System](./STORAGE.md)** - Type-safe, encrypted storage with `@extend-chrome/storage`
 - **[Messaging System](./MESSAGES.md)** - Inter-context communication with `@extend-chrome/messages`
+- **[Shared Messaging APIs](./SHARED_MESSAGING_APIS.md)** - 🆕 Plugin messaging integration with plugin-loader-v2
 - **[Notification System](./NOTIFICATIONS.md)** - Centralized notifications with `@extend-chrome/notify`
 
 ### 🧩 Plugin Development
-- **[Plugin System](./plugins/PLUGIN_SYSTEM.md)** - Plugin architecture and lifecycle
-- **[Plugin Generator](./plugins/PLUGIN_GENERATOR.md)** - Automated plugin scaffolding
-- **[Plugin API Reference](./plugins/PLUGIN_API.md)** - Complete plugin development API
-- **[Example Plugins](./plugins/EXAMPLES.md)** - Real-world plugin examples
+- **[Plugin Development V2](./guides/PLUGIN_DEVELOPMENT_V2.md)** - 🆕 Complete guide using plugin-loader-v2 and shared APIs
+- **[Plugin Architecture](./architecture/PLUGIN_ARCHITECTURE.md)** - Plugin architecture and context separation
+- **[Plugin Standards](./contributing/PLUGIN_STANDARDS.md)** - Development standards and contracts
+- **[Plugin Generator Example](./PLUGIN_GENERATOR_EXAMPLE.md)** - Automated plugin scaffolding examples
 
 ### 🎨 UI Development
 - **[UI Guidelines](./ui/UI_GUIDELINES.md)** - Mantine UI patterns and best practices
@@ -37,9 +40,8 @@ Welcome to the Datadog Sales Engineering Toolkit developer documentation! This d
 - **[Debugging](./tools/DEBUGGING.md)** - Debugging Chrome extensions
 
 ### 📝 Contributing
-- **[Contributing Guidelines](./contributing/CONTRIBUTING.md)** - How to contribute to the project
-- **[Code Style](./contributing/CODE_STYLE.md)** - Coding standards and conventions
-- **[Pull Request Process](./contributing/PR_PROCESS.md)** - Submission and review process
+- **[Contributing Overview](./contributing/CONTRIBUTING_OVERVIEW.md)** - How to contribute to the project
+- **[Plugin Standards](./contributing/PLUGIN_STANDARDS.md)** - Plugin development standards and contracts
 
 ## 🎯 Popular Starting Points
 
@@ -49,19 +51,20 @@ Welcome to the Datadog Sales Engineering Toolkit developer documentation! This d
 3. Review **[System Overview](./architecture/SYSTEM_OVERVIEW.md)**
 
 ### Building a Plugin?
-1. Read **[Plugin System](./plugins/PLUGIN_SYSTEM.md)** overview
-2. Use **[Plugin Generator](./plugins/PLUGIN_GENERATOR.md)** to scaffold
-3. Check **[Example Plugins](./plugins/EXAMPLES.md)** for patterns
+1. Read **[Plugin Development V2](./guides/PLUGIN_DEVELOPMENT_V2.md)** comprehensive guide
+2. Review **[Plugin Architecture](./architecture/PLUGIN_ARCHITECTURE.md)** for context separation
+3. Follow **[Plugin Standards](./contributing/PLUGIN_STANDARDS.md)** for best practices
 
 ### Working with Data?
 1. Learn **[Storage System](./STORAGE.md)** for data persistence
 2. Understand **[Messaging System](./MESSAGES.md)** for communication
-3. Use **[Notification System](./NOTIFICATIONS.md)** for user alerts
+3. Review **[Shared Messaging APIs](./SHARED_MESSAGING_APIS.md)** for plugin messaging
+4. Use **[Notification System](./NOTIFICATIONS.md)** for user alerts
 
 ### Contributing Code?
-1. Follow **[Contributing Guidelines](./contributing/CONTRIBUTING.md)**
-2. Check **[Code Style](./contributing/CODE_STYLE.md)**
-3. Review **[Testing Guide](./testing/TESTING_GUIDE.md)**
+1. Follow **[Contributing Overview](./contributing/CONTRIBUTING_OVERVIEW.md)**
+2. Review **[Plugin Standards](./contributing/PLUGIN_STANDARDS.md)**
+3. Read **[Plugin Development V2](./guides/PLUGIN_DEVELOPMENT_V2.md)** for latest patterns
 
 ## 🔗 External Resources
 
@@ -78,4 +81,14 @@ Welcome to the Datadog Sales Engineering Toolkit developer documentation! This d
 
 ---
 
-*This documentation is maintained by the Datadog Sales Engineering team. Last updated: January 2025* 
+*This documentation is maintained by the Datadog Sales Engineering team. Last updated: January 2025*
+
+---
+
+## 🆕 Recent Updates
+
+- **Plugin Development V2 Guide**: Complete guide using plugin-loader-v2 architecture
+- **Plugin Architecture Documentation**: Context separation and permission management
+- **Shared Messaging APIs**: Integration guide for plugin messaging system
+- **Plugin Standards**: Updated development contracts and best practices
+- **Documentation Reorganization**: Structured docs for better navigation 
