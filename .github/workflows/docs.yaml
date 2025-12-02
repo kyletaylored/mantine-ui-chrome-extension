@@ -32,6 +32,36 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
+      - name: Generate Jekyll config from template
+        run: |
+          # Start from the base config inside docs/
+          cp docs/_config.base.yml docs/_config.yml
+
+          # Append dynamic, repo-specific settings
+          cat >> docs/_config.yml << 'EOF'
+
+          # --- dynamically injected by GitHub Actions ---
+
+          # The repository in org/repo form, e.g. kyletaylored/mantine-ui-chrome-extension
+          repository: "${{ github.repository }}"
+
+          aux_links:
+            "View source on GitHub":
+              - "${{ github.server_url }}/${{ github.repository }}"
+
+          aux_links_new_tab: true
+
+          gh_edit_link: true
+          gh_edit_link_text: "Edit this page on GitHub"
+          gh_edit_repository: "${{ github.server_url }}/${{ github.repository }}"
+          gh_edit_branch: "${{ github.ref_name }}"
+          gh_edit_source: "docs"
+          gh_edit_view_mode: "edit"
+          EOF
+
+          echo "Generated docs/_config.yml:"
+          cat docs/_config.yml
+
       - name: Build with Jekyll
         run: |
           bundle exec jekyll build \

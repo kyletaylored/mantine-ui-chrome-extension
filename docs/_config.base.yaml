@@ -1,21 +1,19 @@
-# docs/_config.yml
+# docs/_config.base.yml
 
 title: Datadog Sales Engineering Toolkit
 description: Developer and user documentation for the Datadog Sales Engineering Chrome extension.
 
-# GitHub Pages URL for this repo
-url: "https://kyletaylored.github.io"
-baseurl: "/mantine-ui-chrome-extension"
+# Leave url/baseurl unset here; they'll be handled via GH Pages + CLI flags
+url: ""
+baseurl: ""
 
-# For GitHub metadata and "Edit this page" links
-repository: kyletaylored/mantine-ui-chrome-extension
+# Do NOT set `repository` here; we'll inject it dynamically
+# repository: kyletaylored/mantine-ui-chrome-extension
 
 permalink: pretty
 
-# Just the Docs theme via remote_theme
 remote_theme: just-the-docs/just-the-docs
 
-# Apply default layout to all pages under docs/
 defaults:
   - scope:
       path: ""     # all files in docs/
@@ -35,8 +33,6 @@ exclude:
   - fixtures/
   - README.md
 
-# ---- Just the Docs options ----
-
 search_enabled: true
 search:
   heading_level: 2
@@ -55,11 +51,7 @@ mermaid:
 
 heading_anchors: true
 
-aux_links:
-  "View source on GitHub":
-    - "https://github.com/kyletaylored/mantine-ui-chrome-extension"
-
-aux_links_new_tab: true
+# aux_links, gh_edit_* will be added dynamically by the workflow
 
 nav_enabled: true
 nav_sort: case_insensitive
@@ -76,12 +68,7 @@ footer_content: 'Internal documentation for the Datadog Sales Engineering Toolki
 
 last_edit_timestamp: false
 
-gh_edit_link: true
-gh_edit_link_text: "Edit this page on GitHub"
-gh_edit_repository: "https://github.com/kyletaylored/mantine-ui-chrome-extension"
-gh_edit_branch: "main"
-gh_edit_source: "docs"
-gh_edit_view_mode: "edit"
+# gh_edit_link & related fields will be appended dynamically
 
 color_scheme: nil
 
