@@ -1,10 +1,8 @@
 name: Deploy Jekyll site to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 permissions:
@@ -12,13 +10,11 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment, but don't cancel in-progress runs
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +35,13 @@ jobs:
 
           # --- dynamically injected by GitHub Actions ---
 
+          # Full origin for the site (e.g. https://kyletaylored.github.io)
+          url: "${{ steps.pages.outputs.origin }}"
+
+          # Base path for this project site (e.g. /mantine-ui-chrome-extension)
+          baseurl: "${{ steps.pages.outputs.base_path }}"
+
+          # GitHub repository metadata
           repository: "${{ github.repository }}"
 
           aux_links:
@@ -61,11 +64,8 @@ jobs:
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
-          # Build from docs/ instead of repo root
           source: ./docs
-          # Output to ./_site (what upload-pages-artifact expects)
           destination: ./_site
-          # You can flip this to true if you ever need future-dated posts
           future: false
           verbose: false
 
@@ -74,7 +74,6 @@ jobs:
         with:
           path: ./_site
 
-  # Deployment job
   deploy:
     environment:
       name: github-pages
