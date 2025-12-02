@@ -23,7 +23,7 @@ import {
   IconSettings
 } from '@tabler/icons-react';
 import { updatePlugin, setPluginSettings } from '@/shared/storage';
-import { pluginLoader } from '@/shared/plugin-loader';
+import { pluginLoaderV2 } from '@/shared/plugin-loader-v2';
 import { getIcon } from '@/shared/icon-loader';
 import { createLogger } from '@/shared/logger';
 import { PluginConfigForm } from '@/options/components/PluginConfigForm';
@@ -45,14 +45,14 @@ export function PluginsPage({ storageData, onRefresh }) {
   const loadPluginManifests = async () => {
     try {
       setLoading(true);
-      
+
       // Initialize plugin loader if not already done
-      await pluginLoader.initialize();
-      
+      await pluginLoaderV2.initialize();
+
       // Get all available plugin manifests
-      const manifests = pluginLoader.getPlugins().map(plugin => plugin.manifest);
+      const manifests = pluginLoaderV2.getAllPlugins();
       setPluginManifests(manifests);
-      
+
       logger.info(`Loaded ${manifests.length} plugin manifests`);
     } catch (error) {
       logger.error('Failed to load plugin manifests:', error);
@@ -74,11 +74,11 @@ export function PluginsPage({ storageData, onRefresh }) {
         logger.warn('Cannot disable core plugin:', pluginId);
         return;
       }
-      
+
       // Find current state from storage
       const storagePlugin = storagePlugins.find(p => p.id === pluginId);
       const currentEnabled = storagePlugin?.enabled ?? manifest.defaultEnabled ?? false;
-      
+
       await updatePlugin(pluginId, { enabled: !currentEnabled });
       await onRefresh();
     } catch (error) {
@@ -121,7 +121,7 @@ export function PluginsPage({ storageData, onRefresh }) {
   const getPluginDisplayData = () => {
     return pluginManifests.map(manifest => {
       const storagePlugin = storagePlugins.find(p => p.id === manifest.id);
-      
+
       return {
         id: manifest.id,
         name: manifest.name,
@@ -185,11 +185,11 @@ export function PluginsPage({ storageData, onRefresh }) {
                       disabled={plugin.isCore} // Core plugins cannot be toggled
                     />
                   </Group>
-                  
+
                   <Text size="sm">
                     {plugin.description}
                   </Text>
-                  
+
                   <Group gap="xs">
                     <Badge
                       variant="light"
@@ -216,7 +216,7 @@ export function PluginsPage({ storageData, onRefresh }) {
                       Configure
                     </Button>
                   )}
-                  
+
                   {plugin.isCore && (
                     <Alert color="violet" variant="light">
                       <Text size="xs">
@@ -230,23 +230,23 @@ export function PluginsPage({ storageData, onRefresh }) {
           })}
         </SimpleGrid>
 
-      {/* Configuration Modal */}
-      <Modal
-        opened={configModalOpened}
-        onClose={handleCloseConfig}
-        title={selectedPlugin ? `Configure ${selectedPlugin.name}` : 'Plugin Configuration'}
-        centered
-        size="lg"
-      >
-        {selectedPlugin && (
-          <PluginConfigForm
-            configSchema={selectedPlugin.configSchema}
-            initialValues={storagePlugins.find(p => p.id === selectedPlugin.id)?.settings || {}}
-            onSave={handleConfigSave}
-            onCancel={handleCloseConfig}
-          />
-        )}
-      </Modal>
+        {/* Configuration Modal */}
+        <Modal
+          opened={configModalOpened}
+          onClose={handleCloseConfig}
+          title={selectedPlugin ? `Configure ${selectedPlugin.name}` : 'Plugin Configuration'}
+          centered
+          size="lg"
+        >
+          {selectedPlugin && (
+            <PluginConfigForm
+              configSchema={selectedPlugin.configSchema}
+              initialValues={storagePlugins.find(p => p.id === selectedPlugin.id)?.settings || {}}
+              onSave={handleConfigSave}
+              onCancel={handleCloseConfig}
+            />
+          )}
+        </Modal>
       </Stack>
     </Container>
   );
