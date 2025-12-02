@@ -1,8 +1,10 @@
 name: Deploy Jekyll site to Pages
 
 on:
+  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 permissions:
@@ -10,39 +12,30 @@ permissions:
   pages: write
   id-token: write
 
+# Allow one concurrent deployment, but don't cancel in-progress runs
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  # Build job
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.3"
-          bundler-cache: true
-          cache-version: 0
-        # Important: tell bundler to look at docs/Gemfile
-        env:
-          BUNDLE_GEMFILE: docs/Gemfile
-
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
 
       - name: Generate Jekyll config from template
-        working-directory: docs
         run: |
           # Start from the base config inside docs/
-          cp _config.base.yml _config.yml
+          cp docs/_config.base.yml docs/_config.yml
 
           # Append dynamic, repo-specific settings
-          cat >> _config.yml << 'EOF'
+          cat >> docs/_config.yml << 'EOF'
 
           # --- dynamically injected by GitHub Actions ---
 
@@ -63,23 +56,25 @@ jobs:
           EOF
 
           echo "Generated docs/_config.yml:"
-          cat _config.yml
+          cat docs/_config.yml
 
       - name: Build with Jekyll
-        working-directory: docs
-        run: |
-          bundle exec jekyll build \
-            --destination ../_site \
-            --baseurl "${{ steps.pages.outputs.base_path }}"
-        env:
-          JEKYLL_ENV: production
-          BUNDLE_GEMFILE: docs/Gemfile
+        uses: actions/jekyll-build-pages@v1
+        with:
+          # Build from docs/ instead of repo root
+          source: ./docs
+          # Output to ./_site (what upload-pages-artifact expects)
+          destination: ./_site
+          # You can flip this to true if you ever need future-dated posts
+          future: false
+          verbose: false
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: ./_site
 
+  # Deployment job
   deploy:
     environment:
       name: github-pages
