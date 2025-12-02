@@ -35,10 +35,10 @@ jobs:
       - name: Generate Jekyll config from template
         run: |
           # Start from the base config inside docs/
-          cp docs/_config.base.yml docs/_config.yml
+          cp docs/_config.base.yaml docs/_config.yaml
 
           # Append dynamic, repo-specific settings
-          cat >> docs/_config.yml << 'EOF'
+          cat >> docs/_config.yaml << 'EOF'
 
           # --- dynamically injected by GitHub Actions ---
 
@@ -59,8 +59,8 @@ jobs:
           gh_edit_view_mode: "edit"
           EOF
 
-          echo "Generated docs/_config.yml:"
-          cat docs/_config.yml
+          echo "Generated docs/_config.yaml:"
+          cat docs/_config.yaml
 
       - name: Build with Jekyll
         run: |
