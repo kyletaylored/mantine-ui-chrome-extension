@@ -27,22 +27,25 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
           cache-version: 0
+        # Important: tell bundler to look at docs/Gemfile
+        env:
+          BUNDLE_GEMFILE: docs/Gemfile
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
 
       - name: Generate Jekyll config from template
+        working-directory: docs
         run: |
           # Start from the base config inside docs/
-          cp docs/_config.base.yaml docs/_config.yaml
+          cp _config.base.yml _config.yml
 
           # Append dynamic, repo-specific settings
-          cat >> docs/_config.yaml << 'EOF'
+          cat >> _config.yml << 'EOF'
 
           # --- dynamically injected by GitHub Actions ---
 
-          # The repository in org/repo form, e.g. kyletaylored/mantine-ui-chrome-extension
           repository: "${{ github.repository }}"
 
           aux_links:
@@ -59,17 +62,18 @@ jobs:
           gh_edit_view_mode: "edit"
           EOF
 
-          echo "Generated docs/_config.yaml:"
-          cat docs/_config.yaml
+          echo "Generated docs/_config.yml:"
+          cat _config.yml
 
       - name: Build with Jekyll
+        working-directory: docs
         run: |
           bundle exec jekyll build \
-            --source docs \
-            --destination _site \
+            --destination ../_site \
             --baseurl "${{ steps.pages.outputs.base_path }}"
         env:
           JEKYLL_ENV: production
+          BUNDLE_GEMFILE: docs/Gemfile
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
