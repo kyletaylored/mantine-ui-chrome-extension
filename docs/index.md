@@ -1,3 +1,8 @@
+---
+title: Datadog Sales Engineering Toolkit
+nav_order: 1
+---
+
 # Datadog Sales Engineering Toolkit
 
 Welcome to the developer documentation! This toolkit is a modular Chrome extension designed for the Datadog Sales Engineering team.

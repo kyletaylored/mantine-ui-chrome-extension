@@ -1,3 +1,8 @@
+---
+title: Shared APIs
+parent: Core APIs
+nav_order: 4
+---
 # Shared Messaging APIs Integration
 
 This document describes how the shared messaging system integrates with the plugin-loader-v2 architecture and provides examples of using the messaging APIs in plugins.

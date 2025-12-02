@@ -1,3 +1,8 @@
+---
+title: Contributing Overview
+parent: Contributing
+nav_order: 1
+---
 # Contributing to Datadog Sales Engineering Toolkit
 
 > 📖 **New Documentation Structure**: We've reorganized our documentation! For comprehensive guides, please visit [docs/index.md](./docs/index.md) for our new developer documentation hub.

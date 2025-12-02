@@ -1,3 +1,8 @@
+---
+title: Plugin Standards
+parent: Contributing
+nav_order: 4
+---
 # Plugin Development Standards
 
 This document defines the standards and contracts for developing plugins in the Datadog Sales Engineering Toolkit.

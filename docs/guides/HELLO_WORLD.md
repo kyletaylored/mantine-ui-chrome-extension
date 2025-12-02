@@ -1,3 +1,8 @@
+---
+title: Hello World Plugin
+parent: Getting Started
+nav_order: 2
+---
 # Hello World Plugin Tutorial
 
 Welcome! This step-by-step tutorial will guide you through creating your first plugin for the Datadog Sales Engineering Toolkit. You'll learn the fundamentals of plugin development and how to use our modern abstractions for storage, messaging, and notifications.

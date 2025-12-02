@@ -1,3 +1,8 @@
+---
+title: Messaging
+parent: Core APIs
+nav_order: 1
+---
 # Messaging System
 
 This document explains the messaging architecture used in the Datadog Sales Engineering Toolkit Chrome Extension. The extension uses a unified message handler in the background script to facilitate type-safe communication between various contexts.

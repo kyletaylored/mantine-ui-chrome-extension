@@ -1,3 +1,8 @@
+---
+title: Plugin Loader
+parent: System Architecture
+nav_order: 2
+---
 # Plugin Loader Architecture Implementation
 
 ## Overview

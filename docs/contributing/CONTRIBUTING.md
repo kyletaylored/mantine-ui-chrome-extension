@@ -1,3 +1,8 @@
+---
+title: Contributor Guide
+parent: Contributing
+nav_order: 3
+---
 # Contributing Guidelines
 
 Welcome to the Datadog Sales Engineering Toolkit! This guide covers the essentials for contributing to the project.

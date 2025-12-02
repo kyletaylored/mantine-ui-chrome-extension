@@ -1,3 +1,8 @@
+---
+title: System Overview
+parent: System Architecture
+nav_order: 1
+---
 # System Overview
 
 This document provides a comprehensive overview of the Datadog Sales Engineering Toolkit's architecture, components, and data flow.

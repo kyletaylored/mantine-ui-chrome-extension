@@ -1,3 +1,8 @@
+---
+title: Plugin Generator
+parent: Plugins
+nav_order: 2
+---
 # Plugin Generator Example
 
 This document shows an example of using the plugin scaffold generator to create a new plugin.

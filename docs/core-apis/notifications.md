@@ -1,3 +1,8 @@
+---
+title: Notifications
+parent: Core APIs
+nav_order: 2
+---
 # Notification System
 
 The extension uses a centralized notification system built on top of the [`@extend-chrome/notify`](https://github.com/extend-chrome/notify) package to provide a consistent, type-safe API for Chrome notifications.

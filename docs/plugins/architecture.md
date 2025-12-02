@@ -1,3 +1,8 @@
+---
+title: Plugin Architecture
+parent: Plugins
+nav_order: 1
+---
 # Plugin Architecture Strategy
 
 ## Overview

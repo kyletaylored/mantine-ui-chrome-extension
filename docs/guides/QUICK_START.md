@@ -1,3 +1,9 @@
+---
+title: Quick Start
+parent: Getting Started
+nav_order: 1
+---
+
 # Quick Start Guide
 
 Get the Datadog Sales Engineering Toolkit up and running in under 5 minutes! ⚡

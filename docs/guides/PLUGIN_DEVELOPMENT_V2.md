@@ -1,3 +1,8 @@
+---
+title: Plugin Development (v2)
+parent: Getting Started
+nav_order: 3
+---
 # Plugin Development with Plugin-Loader-V2
 
 This guide covers plugin development using the latest plugin-loader-v2 architecture with abstracted libraries (storage, messages, notifications) and the new context separation system.

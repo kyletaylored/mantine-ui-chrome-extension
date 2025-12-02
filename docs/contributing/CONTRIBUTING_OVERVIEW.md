@@ -1,3 +1,8 @@
+---
+title: Contribution Workflow
+parent: Contributing
+nav_order: 2
+---
 # Contributing to Datadog Sales Engineering Toolkit
 
 > 📖 **New Documentation Structure**: We've reorganized our documentation! For comprehensive guides, please visit [docs/README.md](./docs/README.md) for our new developer documentation hub.
